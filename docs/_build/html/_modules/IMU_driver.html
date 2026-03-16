@@ -1,0 +1,501 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IMU_driver &mdash; Mechatronics final 1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=29a6c3e3"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Mechatronics final
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Mechatronics final</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Module code</a></li>
+      <li class="breadcrumb-item active">IMU_driver</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for IMU_driver</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">pyb</span><span class="o">,</span><span class="w"> </span><span class="nn">utime</span><span class="o">,</span><span class="w"> </span><span class="nn">struct</span>
+<span class="c1">#from bno055_driver import BNO055</span>
+
+<span class="c1"># i2c = pyb.I2C(3, pyb.I2C.CONTROLLER, baudrate=400000)</span>
+
+<span class="c1"># # bno055_driver.py</span>
+<span class="c1"># address = hex(i2c.scan())</span>
+
+<span class="c1">#IMU =BNO055(i2c, address=address)</span>
+
+<div class="viewcode-block" id="BNO055">
+<a class="viewcode-back" href="../api.html#IMU_driver.BNO055">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">BNO055</span><span class="p">:</span>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i2c</span><span class="p">,</span> <span class="n">address</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initializes an IMU object on the given I2C object and address.</span>
+<span class="sd">        :param: i2c (The I2C object to use for the IMU)</span>
+<span class="sd">        :param type: I2C object</span>
+<span class="sd">        :param: address (The address of the IMU)</span>
+<span class="sd">        :param type: int</span>
+<span class="sd">        :notes: create a bytearray of the registers and the operation modes used in all the functions.</span>
+<span class="sd">            i2c (I2C): The I2C object to use for the IMU.</span>
+<span class="sd">            address (int): The address of the IMU.</span>
+<span class="sd">        Notes: create a bytearray of the registers and the operation modes used in all the functions.</span>
+<span class="sd">        Registers:</span>
+<span class="sd">        - REG_CHIP_ID: 0x00 (chip ID register)</span>
+<span class="sd">        - REG_OPR_MODE: 0x3D (operation mode register)</span>
+<span class="sd">        - REG_PWR_MODE: 0x3E (power mode register)</span>
+<span class="sd">        - REG_SYS_TRIGGER: 0x3F (system trigger register)</span>
+<span class="sd">        - REG_PAGE_ID: 0x07 (page ID register)</span>
+<span class="sd">        - REG_CALIB_STAT: 0x35 (calibration status register)</span>
+<span class="sd">        - EUL_Heading_LSB: 0x1A (heading register)</span>
+<span class="sd">        - EUL_Roll_LSB: 0x1C (roll register)</span>
+<span class="sd">        - EUL_Pitch_LSB: 0x1E (pitch register)</span>
+<span class="sd">        - GYR_DATA_X_LSB: 0x14 (gyroscope data X register)</span>
+<span class="sd">        - GYR_DATA_Z_LSB: 0x18 (gyroscope data Z register)</span>
+<span class="sd">        - ACC_DATA_X_LSB: 0x08 (accelerometer data X register)</span>
+<span class="sd">        - LIA_DATA_X_LSB: 0x28 (linear accelerometer data X register)</span>
+<span class="sd">        - ACC_LSB_PER_MPS2: 100.0 (scale factor for BNO055 in m/s^2 mode)</span>
+<span class="sd">        - REG_CALIB_START: 0x55 (calibration start register)</span>
+<span class="sd">        - CALIB_LEN: 22 (length of the calibration coefficients block)</span>
+<span class="sd">        Operation modes:</span>
+<span class="sd">        - OPR_MODE: 0x3D (register for setting operation mode)</span>
+<span class="sd">        - MODE_CONFIG: 0x00 (config mode)</span>
+<span class="sd">        - MODE_IMU: 0b00001000 (IMU mode)</span>
+<span class="sd">        - MODE_COMP: 0b00001001 (compass mode)</span>
+<span class="sd">        - MODE_M4G: 0b00001010 (magnet for gyroscope mode)</span>
+<span class="sd">        - MODE_NDOFoff: 0b00001011 (NDOF off mode)</span>
+<span class="sd">        - MODE_NDOF: 0b00001100 (NDOF mode)</span>
+<span class="sd">        Power modes:</span>
+<span class="sd">        - PWR_NORMAL: 0x00 (normal power mode)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># -------- Registers (subset you need) --------</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">REG_CHIP_ID</span>       <span class="o">=</span> <span class="mh">0x00</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">REG_OPR_MODE</span>      <span class="o">=</span> <span class="mh">0x3D</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">REG_PWR_MODE</span>      <span class="o">=</span> <span class="mh">0x3E</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">REG_SYS_TRIGGER</span>   <span class="o">=</span> <span class="mh">0x3F</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">REG_PAGE_ID</span>       <span class="o">=</span> <span class="mh">0x07</span>
+    
+        <span class="bp">self</span><span class="o">.</span><span class="n">REG_CALIB_STAT</span>    <span class="o">=</span> <span class="mh">0x35</span>
+    
+        <span class="bp">self</span><span class="o">.</span><span class="n">EUL_Heading_LSB</span>   <span class="o">=</span> <span class="mh">0x1A</span>  <span class="c1"># heading/ yaw</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">EUL_Roll_LSB</span>      <span class="o">=</span> <span class="mh">0x1C</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">EUL_Pitch_LSB</span>     <span class="o">=</span> <span class="mh">0x1E</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">GYR_DATA_X_LSB</span>    <span class="o">=</span> <span class="mh">0x14</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">GYR_DATA_Z_LSB</span>    <span class="o">=</span> <span class="mh">0x18</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ACC_DATA_X_LSB</span>    <span class="o">=</span> <span class="mh">0x08</span>  <span class="c1"># raw accelerometer vector</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">LIA_DATA_X_LSB</span>    <span class="o">=</span> <span class="mh">0x28</span>  <span class="c1"># linear accel (gravity removed)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ACC_LSB_PER_MPS2</span>  <span class="o">=</span> <span class="mf">100.0</span> <span class="c1"># template scale for BNO055 in m/s^2 mode</span>
+    
+        <span class="c1"># Calibration coefficients block (22 bytes)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">REG_CALIB_START</span>   <span class="o">=</span> <span class="mh">0x55</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CALIB_LEN</span>         <span class="o">=</span> <span class="mi">22</span>
+        
+    
+        <span class="c1"># -------- Operation modes --------</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">OPR_MODE</span>    <span class="o">=</span> <span class="mh">0x3D</span>   <span class="c1">#register for setting operation mode</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">MODE_CONFIG</span> <span class="o">=</span> <span class="mh">0x00</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">MODE_IMU</span>    <span class="o">=</span> <span class="mb">0b00001000</span>   <span class="c1"># Accel+Gyro fusion (no mag)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">MODE_COMP</span>   <span class="o">=</span> <span class="mb">0b00001001</span>   <span class="c1"># Compass mode value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">MODE_M4G</span>    <span class="o">=</span> <span class="mb">0b00001010</span>   <span class="c1"># Magnet for gyroscope mode       </span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">MODE_NDOFoff</span><span class="o">=</span> <span class="mb">0b00001011</span>   <span class="c1"># Accel+Gyro</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">MODE_NDOF</span>   <span class="o">=</span> <span class="mb">0b00001100</span>   <span class="c1"># Same as above with fast magnetometer</span>
+    
+        <span class="c1"># -------- Power modes --------</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">PWR_NORMAL</span>  <span class="o">=</span> <span class="mh">0x00</span>
+        
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">i2c</span> <span class="o">=</span> <span class="n">i2c</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">address</span> <span class="o">=</span> <span class="n">address</span>
+
+<span class="c1">#==============================================================================</span>
+<div class="viewcode-block" id="BNO055.set_mode">
+<a class="viewcode-back" href="../api.html#IMU_driver.BNO055.set_mode">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Takes in a string and sets the mode of the IMU to one of the 5 fusion modes</span>
+
+<span class="sd">        :param: mode (The mode to set the IMU to)</span>
+<span class="sd">        :param type: str</span>
+<span class="sd">        :raises: ValueError: If mode is not a valid fusion mode on IMU (CONFIG, IMU, COMPASS, M4G, NDOF, NDOFoff).</span>
+<span class="sd">        :returns: None</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        
+        <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;CONFIG&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">i2c</span><span class="o">.</span><span class="n">mem_write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">MODE_CONFIG</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">address</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">OPR_MODE</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;IMU&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">i2c</span><span class="o">.</span><span class="n">mem_write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">MODE_IMU</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">address</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">OPR_MODE</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;COMPASS&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">i2c</span><span class="o">.</span><span class="n">mem_write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">MODE_COMP</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">address</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">OPR_MODE</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;M4G&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">i2c</span><span class="o">.</span><span class="n">mem_write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">MODE_M4G</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">address</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">OPR_MODE</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;NDOF&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">i2c</span><span class="o">.</span><span class="n">mem_write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">MODE_NDOF</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">address</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">OPR_MODE</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;NDOFoff&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">i2c</span><span class="o">.</span><span class="n">mem_write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">MODE_NDOFoff</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">address</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">OPR_MODE</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span>
+        <span class="k">return</span></div>
+
+<span class="c1">#==============================================================================</span>
+<div class="viewcode-block" id="BNO055.get_mode">
+<a class="viewcode-back" href="../api.html#IMU_driver.BNO055.get_mode">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Returns the current mode of the IMU.</span>
+<span class="sd">        :param: None     </span>
+<span class="sd">        :returns: mode (The current mode of the IMU)</span>
+<span class="sd">        :return type: str</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">buff</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">i2c</span><span class="o">.</span><span class="n">mem_read</span><span class="p">(</span><span class="n">buff</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">address</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">OPR_MODE</span><span class="p">)</span>
+        <span class="n">hexmode</span> <span class="o">=</span> <span class="n">buff</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">hexmode</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">MODE_CONFIG</span><span class="p">:</span>
+            <span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;CONFIG&#39;</span>
+        <span class="k">elif</span> <span class="n">hexmode</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">MODE_IMU</span><span class="p">:</span>
+            <span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;IMU&#39;</span>
+        <span class="k">elif</span> <span class="n">hexmode</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">MODE_IMU</span><span class="p">:</span>
+            <span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;IMU&#39;</span>
+        <span class="k">elif</span> <span class="n">hexmode</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">MODE_COMP</span><span class="p">:</span>
+            <span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;COMP&#39;</span>
+        <span class="k">elif</span> <span class="n">hexmode</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">MODE_M4G</span><span class="p">:</span>
+            <span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;M4G&#39;</span>
+        <span class="k">elif</span> <span class="n">hexmode</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">MODE_NDOF</span><span class="p">:</span>
+            <span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;NDOF&#39;</span>
+        <span class="k">elif</span> <span class="n">hexmode</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">MODE_NDOFoff</span><span class="p">:</span>
+            <span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;NDOFoff&#39;</span>
+        <span class="k">return</span> <span class="n">mode</span></div>
+
+<span class="c1">#==============================================================================</span>
+<div class="viewcode-block" id="BNO055.cal_status">
+<a class="viewcode-back" href="../api.html#IMU_driver.BNO055.cal_status">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">cal_status</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        returns a string that classifies the current calibrations status of the </span>
+<span class="sd">        IMU. Call print on this function to print to terminal, or check to see</span>
+<span class="sd">        if status has certian strings inside of it to calibrate without printing</span>
+
+<span class="sd">        :param: None</span>
+<span class="sd">        :returns: status (The current calibration status of the IMU)</span>
+<span class="sd">        :return type: str</span>
+<span class="sd">        :notes:</span>
+<span class="sd">        - SYSTEM CALIBRAITION COMPLETE: All systems are calibrated.</span>
+<span class="sd">        - SYSTEM PARTLY CALIBRATED: Some systems are calibrated.</span>
+<span class="sd">        - SYSTEM NOT CALIBRAITED: No systems are calibrated.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">status</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="n">buff</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">i2c</span><span class="o">.</span><span class="n">mem_read</span><span class="p">(</span><span class="n">buff</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">address</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">REG_CALIB_STAT</span><span class="p">)</span>
+        <span class="n">cal</span> <span class="o">=</span> <span class="n">buff</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">&gt;&gt;</span><span class="mi">6</span> <span class="o">&amp;</span> <span class="mb">0b11</span>
+        <span class="n">gyro</span><span class="o">=</span> <span class="n">buff</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">&gt;&gt;</span><span class="mi">4</span> <span class="o">&amp;</span> <span class="mb">0b11</span>
+        <span class="n">acc</span> <span class="o">=</span> <span class="n">buff</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">&gt;&gt;</span><span class="mi">2</span> <span class="o">&amp;</span> <span class="mb">0b11</span>
+        <span class="n">mag</span> <span class="o">=</span> <span class="n">buff</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>    <span class="o">&amp;</span> <span class="mb">0b11</span>
+        <span class="c1">#calibration status</span>
+        <span class="k">if</span> <span class="n">cal</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">status</span> <span class="o">+=</span> <span class="s1">&#39;SYSTEM CALIBRAITION COMPLETE</span><span class="se">\r\n</span><span class="s1">&#39;</span>
+        <span class="k">elif</span> <span class="n">cal</span> <span class="ow">in</span> <span class="p">{</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">}:</span>
+            <span class="n">status</span> <span class="o">+=</span> <span class="s1">&#39;SYSTEM PARTLY CALIBRATED</span><span class="se">\r\n</span><span class="s1">&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">status</span> <span class="o">+=</span> <span class="s1">&#39;SYSTEM NOT CALIBRAITED</span><span class="se">\r\n</span><span class="s1">&#39;</span>
+        <span class="c1">#GYRO Status</span>
+        <span class="k">if</span> <span class="n">gyro</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">status</span> <span class="o">+=</span> <span class="s1">&#39;GYRO CALIBRAITION COMPLETE</span><span class="se">\r\n</span><span class="s1">&#39;</span>
+        <span class="k">elif</span> <span class="n">gyro</span> <span class="ow">in</span> <span class="p">{</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">}:</span>
+            <span class="n">status</span> <span class="o">+=</span> <span class="s1">&#39;GYRO PARTLY CALIBRATED</span><span class="se">\r\n</span><span class="s1">&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">status</span> <span class="o">+=</span> <span class="s1">&#39;GYRO NOT CALIBRAITED</span><span class="se">\r\n</span><span class="s1">&#39;</span>
+        <span class="c1">#ACC Status</span>
+        <span class="k">if</span> <span class="n">acc</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">status</span> <span class="o">+=</span> <span class="s1">&#39;ACC CALIBRAITION COMPLETE</span><span class="se">\r\n</span><span class="s1">&#39;</span>
+        <span class="k">elif</span> <span class="n">acc</span> <span class="ow">in</span> <span class="p">{</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">}:</span>
+            <span class="n">status</span> <span class="o">+=</span> <span class="s1">&#39;ACC PARTLY CALIBRATED</span><span class="se">\r\n</span><span class="s1">&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">status</span> <span class="o">+=</span> <span class="s1">&#39;ACC NOT CALIBRAITED</span><span class="se">\r\n</span><span class="s1">&#39;</span>
+        <span class="c1">#MAG Status</span>
+        <span class="k">if</span> <span class="n">mag</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">status</span> <span class="o">+=</span> <span class="s1">&#39;MAGNETOMETER CALIBRAITION COMPLETE</span><span class="se">\r\n</span><span class="s1">&#39;</span>
+        <span class="k">elif</span> <span class="n">mag</span> <span class="ow">in</span> <span class="p">{</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">}:</span>
+            <span class="n">status</span> <span class="o">+=</span> <span class="s1">&#39;MAGNETOMETER PARTLY CALIBRATED</span><span class="se">\r\n</span><span class="s1">&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">status</span> <span class="o">+=</span> <span class="s1">&#39;MAGNETOMETER NOT CALIBRAITED</span><span class="se">\r\n</span><span class="s1">&#39;</span>
+        <span class="n">status</span> <span class="o">+=</span> <span class="s1">&#39;----------------------</span><span class="se">\r\n</span><span class="s1">&#39;</span>
+        <span class="k">return</span> <span class="n">status</span></div>
+
+<span class="c1">#==============================================================================</span>
+<div class="viewcode-block" id="BNO055.read_cal_coeffs">
+<a class="viewcode-back" href="../api.html#IMU_driver.BNO055.read_cal_coeffs">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">read_cal_coeffs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        reads the calibration coefficents of the IMU and puts them into a tuple</span>
+<span class="sd">        that has order accX,accY,accZ,magX,magY,magZ,gyoX,gyoY,gyoZ,accR,magR</span>
+
+<span class="sd">        :param: None</span>
+<span class="sd">            None</span>
+<span class="sd">        :returns: values (The calibration coefficients of the IMU)</span>
+<span class="sd">        :return type: tuple</span>
+<span class="sd">        :notes: tuple returned - (accX,accY,accZ,magX,magY,magZ,gyoX,gyoY,gyoZ,accR,magR)</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        
+        <span class="n">buff</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">(</span><span class="mi">22</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">i2c</span><span class="o">.</span><span class="n">mem_read</span><span class="p">(</span><span class="n">buff</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">address</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">REG_CALIB_START</span><span class="p">)</span>
+        
+        <span class="n">accX</span><span class="p">,</span><span class="n">accY</span><span class="p">,</span><span class="n">accZ</span><span class="p">,</span><span class="n">magX</span><span class="p">,</span><span class="n">magY</span><span class="p">,</span><span class="n">magZ</span><span class="p">,</span><span class="n">gyoX</span><span class="p">,</span><span class="n">gyoY</span><span class="p">,</span><span class="n">gyoZ</span><span class="p">,</span><span class="n">accR</span><span class="p">,</span><span class="n">magR</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s1">&#39;&lt;hhhhhhhhhhh&#39;</span><span class="p">,</span><span class="n">buff</span><span class="p">)</span>
+        
+        <span class="n">values</span> <span class="o">=</span> <span class="n">accX</span><span class="p">,</span><span class="n">accY</span><span class="p">,</span><span class="n">accZ</span><span class="p">,</span><span class="n">magX</span><span class="p">,</span><span class="n">magY</span><span class="p">,</span><span class="n">magZ</span><span class="p">,</span><span class="n">gyoX</span><span class="p">,</span><span class="n">gyoY</span><span class="p">,</span><span class="n">gyoZ</span><span class="p">,</span><span class="n">accR</span><span class="p">,</span><span class="n">magR</span>
+        <span class="k">return</span> <span class="n">values</span></div>
+
+<span class="c1">#==============================================================================</span>
+<div class="viewcode-block" id="BNO055.write_cal_coeffs">
+<a class="viewcode-back" href="../api.html#IMU_driver.BNO055.write_cal_coeffs">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">write_cal_coeffs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">blob</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        writes calibration coefficents into the imu</span>
+<span class="sd">        :param: blob (The calibration coefficients of the IMU)</span>
+<span class="sd">        :param type: tuple</span>
+<span class="sd">        :returns: None</span>
+<span class="sd">        :notes: tuple returned - (accX,accY,accZ,magX,magY,magZ,gyoX,gyoY,gyoZ,accR,magR)</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        
+        <span class="n">values</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">(</span><span class="mi">22</span><span class="p">)</span>
+        <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="c1"># takes each element in blob and reverses the bit order and adds it to</span>
+        <span class="c1">#the values bytearray so that LSB is first so the registers line up</span>
+        <span class="k">while</span> <span class="n">count</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">blob</span><span class="p">):</span>
+            <span class="n">temp_bytes</span> <span class="o">=</span> <span class="n">blob</span><span class="p">[</span><span class="n">count</span><span class="p">]</span>
+            <span class="n">temp_bytes</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span>
+            
+            <span class="n">values</span> <span class="o">+=</span> <span class="n">temp_bytes</span>
+            
+            <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+    
+        <span class="bp">self</span><span class="o">.</span><span class="n">i2c</span><span class="o">.</span><span class="n">mem_write</span><span class="p">(</span><span class="n">values</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">address</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">REG_CALIB_START</span><span class="p">)</span>
+        <span class="k">return</span></div>
+
+<span class="c1">#==============================================================================</span>
+<div class="viewcode-block" id="BNO055.euler">
+<a class="viewcode-back" href="../api.html#IMU_driver.BNO055.euler">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">euler</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Returns the Euler angles of the IMU.</span>
+<span class="sd">        :param: None</span>
+<span class="sd">        :returns: angles (The Euler angles of the IMU)</span>
+<span class="sd">        :return type: tuple</span>
+<span class="sd">        :notes: tuple returned - (heading,roll,pitch)</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">buff</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">i2c</span><span class="o">.</span><span class="n">mem_read</span><span class="p">(</span><span class="n">buff</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">address</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">EUL_Heading_LSB</span><span class="p">)</span>
+        
+        <span class="n">heading</span><span class="p">,</span><span class="n">roll</span><span class="p">,</span><span class="n">pitch</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s1">&#39;&lt;hhh&#39;</span><span class="p">,</span><span class="n">buff</span><span class="p">)</span>        
+        
+        <span class="n">angles</span> <span class="o">=</span> <span class="n">heading</span><span class="o">/</span><span class="mi">16</span><span class="p">,</span><span class="n">roll</span><span class="o">/</span><span class="mi">16</span><span class="p">,</span><span class="n">pitch</span><span class="o">/</span><span class="mi">16</span>
+        <span class="k">return</span> <span class="n">angles</span></div>
+
+<span class="c1">#==============================================================================</span>
+<div class="viewcode-block" id="BNO055.get_ang_velocity">
+<a class="viewcode-back" href="../api.html#IMU_driver.BNO055.get_ang_velocity">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_ang_velocity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Returns the angular velocity of the IMU.</span>
+<span class="sd">        :param: None</span>
+<span class="sd">        :returns: omegas (The angular velocity of the IMU)</span>
+<span class="sd">        :return type: tuple</span>
+<span class="sd">        :notes: tuple returned - (gyrX,gyrY,gyrZ)</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">buff</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">i2c</span><span class="o">.</span><span class="n">mem_read</span><span class="p">(</span><span class="n">buff</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">address</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">GYR_DATA_X_LSB</span><span class="p">)</span>
+        
+        <span class="n">gyrX</span><span class="p">,</span><span class="n">gyrY</span><span class="p">,</span><span class="n">gyrZ</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s1">&#39;&lt;hhh&#39;</span><span class="p">,</span><span class="n">buff</span><span class="p">)</span>
+        
+        <span class="n">omegas</span> <span class="o">=</span> <span class="n">gyrX</span><span class="o">/</span><span class="mi">16</span><span class="p">,</span><span class="n">gyrY</span><span class="o">/</span><span class="mi">16</span><span class="p">,</span><span class="n">gyrZ</span><span class="o">/</span><span class="mi">16</span>
+        <span class="k">return</span> <span class="n">omegas</span></div>
+
+<span class="c1">#==============================================================================</span>
+<div class="viewcode-block" id="BNO055.heading">
+<a class="viewcode-back" href="../api.html#IMU_driver.BNO055.heading">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">heading</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Returns the heading of the IMU.</span>
+<span class="sd">        :param: None</span>
+<span class="sd">        :returns: heading (The heading of the IMU)</span>
+<span class="sd">        :return type: int</span>
+<span class="sd">        :notes: heading is in degrees.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">buff</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">i2c</span><span class="o">.</span><span class="n">mem_read</span><span class="p">(</span><span class="n">buff</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">address</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">EUL_Heading_LSB</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s1">&#39;&lt;h&#39;</span><span class="p">,</span><span class="n">buff</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="mi">16</span></div>
+
+<span class="c1">#==============================================================================</span>
+<div class="viewcode-block" id="BNO055.yaw_rate">
+<a class="viewcode-back" href="../api.html#IMU_driver.BNO055.yaw_rate">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">yaw_rate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Returns the yaw rate of the IMU.</span>
+<span class="sd">        :param: None</span>
+<span class="sd">        :returns: yaw (The yaw rate of the IMU)</span>
+<span class="sd">        :return type: int</span>
+<span class="sd">        :notes: yaw is in degrees/second.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">buff</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">i2c</span><span class="o">.</span><span class="n">mem_read</span><span class="p">(</span><span class="n">buff</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">address</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">GYR_DATA_Z_LSB</span><span class="p">)</span>
+        <span class="n">yaw</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s1">&#39;&lt;h&#39;</span><span class="p">,</span><span class="n">buff</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="mi">16</span>
+        <span class="k">return</span> <span class="n">yaw</span></div>
+
+<span class="c1">#==============================================================================</span>
+<div class="viewcode-block" id="BNO055.get_accel_raw">
+<a class="viewcode-back" href="../api.html#IMU_driver.BNO055.get_accel_raw">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_accel_raw</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Returns the raw acceleration of the IMU.</span>
+<span class="sd">        :param: None</span>
+<span class="sd">        :returns: accels (The raw acceleration of the IMU)</span>
+<span class="sd">        :return type: tuple</span>
+<span class="sd">        :notes: tuple returned - (accX,accY,accZ) each 16bit signed int raw register value.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">buff</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">i2c</span><span class="o">.</span><span class="n">mem_read</span><span class="p">(</span><span class="n">buff</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">address</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">ACC_DATA_X_LSB</span><span class="p">)</span>
+
+        <span class="n">accX</span><span class="p">,</span><span class="n">accY</span><span class="p">,</span><span class="n">accZ</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s1">&#39;&lt;hhh&#39;</span><span class="p">,</span><span class="n">buff</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">accX</span><span class="p">,</span><span class="n">accY</span><span class="p">,</span><span class="n">accZ</span></div>
+
+<span class="c1">#==============================================================================</span>
+<div class="viewcode-block" id="BNO055.get_linear_accel_raw">
+<a class="viewcode-back" href="../api.html#IMU_driver.BNO055.get_linear_accel_raw">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_linear_accel_raw</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Returns the linear acceleration of the IMU (gravity compensated by fusion).</span>
+
+<span class="sd">        :param: None</span>
+<span class="sd">        :returns: lin_accels (The linear acceleration of the IMU)</span>
+<span class="sd">        :return type: tuple</span>
+<span class="sd">        :notes: tuple returned - (linX,linY,linZ) each 16bit signed int raw value.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">buff</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">i2c</span><span class="o">.</span><span class="n">mem_read</span><span class="p">(</span><span class="n">buff</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">address</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">LIA_DATA_X_LSB</span><span class="p">)</span>
+
+        <span class="n">linX</span><span class="p">,</span><span class="n">linY</span><span class="p">,</span><span class="n">linZ</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s1">&#39;&lt;hhh&#39;</span><span class="p">,</span><span class="n">buff</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">linX</span><span class="p">,</span><span class="n">linY</span><span class="p">,</span><span class="n">linZ</span></div>
+
+<span class="c1">#==============================================================================</span>
+<div class="viewcode-block" id="BNO055.get_accel_mps2">
+<a class="viewcode-back" href="../api.html#IMU_driver.BNO055.get_accel_mps2">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_accel_mps2</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Returns the unit-converted acceleration of the IMU.</span>
+
+<span class="sd">        :param: None</span>
+<span class="sd">        :returns: lin_accels (The linear acceleration of the IMU)</span>
+<span class="sd">        :return type: tuple</span>
+<span class="sd">        :notes: tuple returned - (accX,accY,accZ) each an integer in m/s^2. Due to orientation of the IMU on the robot X and Y are switched.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">accX</span><span class="p">,</span><span class="n">accY</span><span class="p">,</span><span class="n">accZ</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_accel_raw</span><span class="p">()</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">accY</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">ACC_LSB_PER_MPS2</span><span class="p">,</span> <span class="c1">#switch x and y to account for the orientation of the IMU</span>
+                <span class="n">accX</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">ACC_LSB_PER_MPS2</span><span class="p">,</span>
+                <span class="n">accZ</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">ACC_LSB_PER_MPS2</span><span class="p">)</span></div>
+
+<span class="c1">#==============================================================================</span>
+<div class="viewcode-block" id="BNO055.get_linear_accel_mps2">
+<a class="viewcode-back" href="../api.html#IMU_driver.BNO055.get_linear_accel_mps2">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_linear_accel_mps2</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Returns the unit-converted linear acceleration of the IMU.</span>
+<span class="sd">        :param: None</span>
+<span class="sd">        :returns: lin_accels (The linear acceleration of the IMU)</span>
+<span class="sd">        :return type: tuple</span>
+<span class="sd">        :notes: tuple returned - (linx,liny,linz) each an integer in m/s^2. Due to orientation of the IMU on the robot X and Y are switched.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">linX</span><span class="p">,</span><span class="n">linY</span><span class="p">,</span><span class="n">linZ</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_linear_accel_raw</span><span class="p">()</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">linY</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">ACC_LSB_PER_MPS2</span><span class="p">,</span> <span class="c1">#switch x and y to account for the orientation of the IMU</span>
+                <span class="n">linX</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">ACC_LSB_PER_MPS2</span><span class="p">,</span>
+                <span class="n">linZ</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">ACC_LSB_PER_MPS2</span><span class="p">)</span></div>
+</div>
+
+<span class="c1">#==============================================================================</span>
+
+<span class="c1">#IMU.set_mode(&#39;IMU&#39;)     # IMU fusion (no mag) — usually best near motors</span>
+<span class="c1"># imu.set_mode(BNO055.MODE_NDOF)  # if you want magnetometer</span>
+
+<span class="c1"># while True:</span>
+<span class="c1">#     print(&quot;heading:&quot;, IMU.heading(), &quot;yaw_rate:&quot;, IMU.yaw_rate(), &quot;cal:&quot;, IMU.cal_status())</span>
+<span class="c1">#     utime.sleep_ms(100)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Max Soury and Shafiq Amat.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

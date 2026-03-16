@@ -1,0 +1,541 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cotask &mdash; Mechatronics final 1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=29a6c3e3"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Mechatronics final
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Mechatronics final</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Module code</a></li>
+      <li class="breadcrumb-item active">cotask</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for cotask</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Cooperative task scheduling for MicroPython multitasking.</span>
+
+<span class="sd">This module provides classes to run cooperatively scheduled tasks in a</span>
+<span class="sd">multitasking system. Tasks are created as generators: functions with infinite</span>
+<span class="sd">loops that call ``yield`` at least once per loop. References to all</span>
+<span class="sd">tasks are kept in a list maintained by :class:`TaskList`; the scheduler runs</span>
+<span class="sd">each task&#39;s generator according to a chosen algorithm (e.g. round-robin or</span>
+<span class="sd">highest-priority-first).</span>
+
+<span class="sd">Example:</span>
+<span class="sd">    Create a task and run it with the scheduler::</span>
+
+<span class="sd">        def task1_fun():</span>
+<span class="sd">            &#39;&#39;&#39;Switch states repeatedly.&#39;&#39;&#39;</span>
+<span class="sd">            state = 0</span>
+<span class="sd">            while True:</span>
+<span class="sd">                if state == 0:</span>
+<span class="sd">                    state = 1</span>
+<span class="sd">                elif state == 1:</span>
+<span class="sd">                    state = 0</span>
+<span class="sd">                yield state</span>
+
+<span class="sd">        task1 = cotask.Task(task1_fun, name=&#39;Task 1&#39;, priority=1,</span>
+<span class="sd">                            period=500, profile=True, trace=True)</span>
+<span class="sd">        cotask.task_list.append(task1)</span>
+<span class="sd">        while True:</span>
+<span class="sd">            cotask.task_list.pri_sched()</span>
+
+<span class="sd">Module contents:</span>
+<span class="sd">    - **Task** – Cooperative task with optional profiling and tracing.</span>
+<span class="sd">    - **TaskList** – Container of tasks; supports round-robin and</span>
+<span class="sd">      priority scheduling.</span>
+<span class="sd">    - **SCHEDULER_DEBUG_MAX** – Maximum number of scheduler debug entries</span>
+<span class="sd">      to keep (default 64; oldest dropped when full).</span>
+<span class="sd">    - **task_list** – Default :class:`TaskList` instance created on import;</span>
+<span class="sd">      append tasks here and call :meth:`TaskList.pri_sched` or</span>
+<span class="sd">      :meth:`TaskList.rr_sched` to run them.</span>
+
+<span class="sd">Copyright (c) 2017-2023 JR Ridgely. Released under the GNU Public License v3.0.</span>
+<span class="sd">Intended for educational use; use is not limited thereto.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">gc</span>                              <span class="c1"># Memory allocation garbage collector</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">utime</span>                           <span class="c1"># Micropython version of time library</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">micropython</span>                     <span class="c1"># This shuts up incorrect warnings</span>
+
+
+<div class="viewcode-block" id="Task">
+<a class="viewcode-back" href="../api.html#cotask.Task">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Task</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Cooperative task with scheduling and optional performance logging.</span>
+
+<span class="sd">    Implements behavior common to tasks in a cooperative multitasking system</span>
+<span class="sd">    under MicroPython. A task can be scheduled by time (period) or by an</span>
+<span class="sd">    external trigger (e.g. interrupt or another task). State transitions can</span>
+<span class="sd">    be traced and run times profiled. Task code must be a generator that</span>
+<span class="sd">    yields the current state (and the CPU) after running for a short, bounded</span>
+<span class="sd">    time.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">run_fun</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;NoName&quot;</span><span class="p">,</span> <span class="n">priority</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">period</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">profile</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">trace</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">shares</span><span class="o">=</span><span class="p">()):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize a task so it may be run by the scheduler.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            run_fun: Generator function that implements the task. Must yield</span>
+<span class="sd">                the current state.</span>
+<span class="sd">            name: Short descriptive name for the task. Default is &quot;NoName&quot;.</span>
+<span class="sd">            priority: Positive integer; higher means higher priority.</span>
+<span class="sd">                Default 0.</span>
+<span class="sd">            period: Time in milliseconds between runs when using timer</span>
+<span class="sd">                scheduling, or None if the task is triggered only by go().</span>
+<span class="sd">                Accepts int or float; converted to microseconds internally.</span>
+<span class="sd">            profile: If True, enable run-time profiling (execution time stats).</span>
+<span class="sd">            trace: If True, record state transition list. Note: uses memory</span>
+<span class="sd">                and can slow execution.</span>
+<span class="sd">            shares: Optional list or tuple of shares/queues used by this task.</span>
+<span class="sd">                If omitted, no shares are passed to the task.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># The function which is run to implement this task&#39;s code. Since it</span>
+        <span class="c1"># is a generator, we &quot;run&quot; it here, which doesn&#39;t actually run it but</span>
+        <span class="c1"># gets it going as a generator which is ready to yield values</span>
+        <span class="k">if</span> <span class="n">shares</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_run_gen</span> <span class="o">=</span> <span class="n">run_fun</span><span class="p">(</span><span class="n">shares</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_run_gen</span> <span class="o">=</span> <span class="n">run_fun</span><span class="p">()</span>
+
+        <span class="c1">## The name of the task, hopefully a short and descriptive string.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+
+        <span class="c1">## The task&#39;s priority, an integer with higher numbers meaning higher </span>
+        <span class="c1">#  priority. </span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">priority</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">priority</span><span class="p">)</span>
+
+        <span class="c1">## The period, in milliseconds, between runs of the task&#39;s @c run()</span>
+        <span class="c1">#  method. If the period is @c None, the @c run() method won&#39;t be run</span>
+        <span class="c1">#  on a time basis but will instead be run by the scheduler as soon</span>
+        <span class="c1">#  as feasible after code such as an interrupt handler calls the </span>
+        <span class="c1">#  @c go() method. </span>
+        <span class="k">if</span> <span class="n">period</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">period</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">period</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_next_run</span> <span class="o">=</span> <span class="n">utime</span><span class="o">.</span><span class="n">ticks_us</span><span class="p">()</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">period</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">period</span> <span class="o">=</span> <span class="n">period</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_next_run</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># Flag which causes the task to be profiled, in which the execution</span>
+        <span class="c1">#  time of the @c run() method is measured and basic statistics kept. </span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_prof</span> <span class="o">=</span> <span class="n">profile</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset_profile</span><span class="p">()</span>
+
+        <span class="c1"># The previous state in which the task last ran. It is used to watch</span>
+        <span class="c1"># for and track state transitions.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_prev_state</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># If transition tracing has been enabled, create an empty list in </span>
+        <span class="c1"># which to store transition (time, to-state) stamps</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_trace</span> <span class="o">=</span> <span class="n">trace</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tr_data</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_prev_time</span> <span class="o">=</span> <span class="n">utime</span><span class="o">.</span><span class="n">ticks_us</span><span class="p">()</span>
+
+        <span class="c1">## Flag which is set true when the task is ready to be run by the</span>
+        <span class="c1">#  scheduler</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">go_flag</span> <span class="o">=</span> <span class="kc">False</span>
+
+
+<div class="viewcode-block" id="Task.schedule">
+<a class="viewcode-back" href="../api.html#cotask.Task.schedule">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">schedule</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Run this task once if it is ready (called by the scheduler).</span>
+
+<span class="sd">        If the task is not ready, returns immediately. If ready, runs the</span>
+<span class="sd">        task&#39;s generator up to the next yield() and then returns.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            True if the task ran, False if it did not.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ready</span><span class="p">():</span>
+
+            <span class="c1"># Reset the go flag for the next run</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">go_flag</span> <span class="o">=</span> <span class="kc">False</span>
+
+            <span class="c1"># If profiling, save the start time</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prof</span><span class="p">:</span>
+                <span class="n">stime</span> <span class="o">=</span> <span class="n">utime</span><span class="o">.</span><span class="n">ticks_us</span><span class="p">()</span>
+
+            <span class="c1"># Run the method belonging to the state which should be run next</span>
+            <span class="n">curr_state</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_run_gen</span><span class="p">)</span>
+
+            <span class="c1"># If profiling or tracing, save timing data</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prof</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trace</span><span class="p">:</span>
+                <span class="n">etime</span> <span class="o">=</span> <span class="n">utime</span><span class="o">.</span><span class="n">ticks_us</span><span class="p">()</span>
+
+            <span class="c1"># If profiling, save timing data</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prof</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_runs</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">runt</span> <span class="o">=</span> <span class="n">utime</span><span class="o">.</span><span class="n">ticks_diff</span><span class="p">(</span><span class="n">etime</span><span class="p">,</span> <span class="n">stime</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_runs</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_run_sum</span> <span class="o">+=</span> <span class="n">runt</span>
+                    <span class="k">if</span> <span class="n">runt</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_slowest</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_slowest</span> <span class="o">=</span> <span class="n">runt</span>
+
+            <span class="c1"># If transition logic tracing is on, record a transition; if not,</span>
+            <span class="c1"># ignore the state. If out of memory, switch tracing off and </span>
+            <span class="c1"># run the memory allocation garbage collector</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trace</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">curr_state</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prev_state</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_tr_data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                            <span class="p">(</span><span class="n">utime</span><span class="o">.</span><span class="n">ticks_diff</span><span class="p">(</span><span class="n">etime</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prev_time</span><span class="p">),</span>
+                             <span class="n">curr_state</span><span class="p">))</span>
+                <span class="k">except</span> <span class="ne">MemoryError</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_trace</span> <span class="o">=</span> <span class="kc">False</span>
+                    <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">_prev_state</span> <span class="o">=</span> <span class="n">curr_state</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_prev_time</span> <span class="o">=</span> <span class="n">etime</span>
+
+            <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span></div>
+
+
+
+    <span class="nd">@micropython</span><span class="o">.</span><span class="n">native</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">ready</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return whether the task is ready to run.</span>
+
+<span class="sd">        For timer-based tasks, checks if the next run time has been reached.</span>
+<span class="sd">        For event-triggered tasks, checks the go flag. Can be overridden in</span>
+<span class="sd">        subclasses for custom readiness logic.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            True if the task is ready to run, False otherwise.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># If this task uses a timer, check if it&#39;s time to run run() again. If</span>
+        <span class="c1"># so, set go flag and set the timer to go off at the next run time</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">period</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">late</span> <span class="o">=</span> <span class="n">utime</span><span class="o">.</span><span class="n">ticks_diff</span><span class="p">(</span><span class="n">utime</span><span class="o">.</span><span class="n">ticks_us</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_next_run</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">late</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">go_flag</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_next_run</span> <span class="o">=</span> <span class="n">utime</span><span class="o">.</span><span class="n">ticks_diff</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">period</span><span class="p">,</span> 
+                                                  <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">_next_run</span><span class="p">)</span>
+
+                <span class="c1"># If keeping a latency profile, record the data</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prof</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_late_sum</span> <span class="o">+=</span> <span class="n">late</span>
+                    <span class="k">if</span> <span class="n">late</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_latest</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_latest</span> <span class="o">=</span> <span class="n">late</span>
+
+        <span class="c1"># If the task doesn&#39;t use a timer, we rely on go_flag to signal ready</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">go_flag</span>
+
+
+<div class="viewcode-block" id="Task.set_period">
+<a class="viewcode-back" href="../api.html#cotask.Task.set_period">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_period</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_period</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the period between task runs.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            new_period: New period in milliseconds, or None to make the task</span>
+<span class="sd">                event-triggered (via go()) instead of time-based.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">new_period</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">period</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">period</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">new_period</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1000</span></div>
+
+
+
+    <span class="c1">## This method resets the variables used for execution time profiling.</span>
+    <span class="c1">#  This method is also used by @c __init__() to create the variables.</span>
+<div class="viewcode-block" id="Task.reset_profile">
+<a class="viewcode-back" href="../api.html#cotask.Task.reset_profile">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reset_profile</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset execution-time profiling counters.</span>
+
+<span class="sd">        Also used internally by __init__() to initialize profiling variables.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_runs</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_run_sum</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_slowest</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_late_sum</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_latest</span> <span class="o">=</span> <span class="mi">0</span></div>
+
+
+
+<div class="viewcode-block" id="Task.get_trace">
+<a class="viewcode-back" href="../api.html#cotask.Task.get_trace">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_trace</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a string with the task&#39;s state transition trace.</span>
+
+<span class="sd">        The trace lists (time, from_state, to_state) for each transition,</span>
+<span class="sd">        if tracing was enabled. Can be large.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            String showing state transitions, or &quot;not traced&quot; if tracing</span>
+<span class="sd">            was disabled.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">tr_str</span> <span class="o">=</span> <span class="s1">&#39;Task &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;:&#39;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trace</span><span class="p">:</span>
+            <span class="n">tr_str</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span>
+            <span class="n">last_state</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">total_time</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tr_data</span><span class="p">:</span>
+                <span class="n">total_time</span> <span class="o">+=</span> <span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="mf">1000000.0</span>
+                <span class="n">tr_str</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="si">{: 12.6f}</span><span class="s1">: </span><span class="si">{: 2d}</span><span class="s1"> -&gt; </span><span class="si">{:d}</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span> <span class="p">(</span><span class="n">total_time</span><span class="p">,</span> 
+                    <span class="n">last_state</span><span class="p">,</span> <span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">last_state</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">tr_str</span> <span class="o">+=</span> <span class="s1">&#39; not traced&#39;</span>
+        <span class="k">return</span> <span class="n">tr_str</span></div>
+
+
+
+<div class="viewcode-block" id="Task.go">
+<a class="viewcode-back" href="../api.html#cotask.Task.go">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">go</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Mark the task as ready to run.</span>
+
+<span class="sd">        Can be called from an interrupt service routine or from another task</span>
+<span class="sd">        when data is available for this task to process.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">go_flag</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;String representation for diagnostics.</span>
+
+<span class="sd">        Shows task name, priority, period, run count, and (if profiled) avg/max</span>
+<span class="sd">        execution time and latency. Column widths are kept short (~60 chars)</span>
+<span class="sd">        for narrow serial consoles.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Single-line string representing the task.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Keep name to 16 chars so full line fits in ~62 chars (no wrap)</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">[:</span><span class="mi">16</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">16</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+        <span class="n">rst</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">:</span><span class="s2">&lt;16s</span><span class="si">}{</span><span class="bp">self</span><span class="o">.</span><span class="n">priority</span><span class="si">:</span><span class="s2">&gt;3d</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">rst</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">period</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">1000.0</span><span class="p">)</span><span class="si">:</span><span class="s2">&gt;7.1f</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+            <span class="n">rst</span> <span class="o">+=</span> <span class="s1">&#39;      -&#39;</span>
+        <span class="n">rst</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_runs</span><span class="si">:</span><span class="s2">&gt;6d</span><span class="si">}</span><span class="s2">&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prof</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_runs</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">avg_dur</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_run_sum</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_runs</span><span class="p">)</span> <span class="o">/</span> <span class="mf">1000.0</span>
+            <span class="n">avg_late</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_late_sum</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_runs</span><span class="p">)</span> <span class="o">/</span> <span class="mf">1000.0</span>
+            <span class="n">rst</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">avg_dur</span><span class="si">:</span><span class="s2">&gt;7.2f</span><span class="si">}</span><span class="s2">   </span><span class="si">{</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_slowest</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">1000.0</span><span class="p">)</span><span class="si">:</span><span class="s2">&gt;6.2f</span><span class="si">}</span><span class="s2"> &quot;</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">period</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">rst</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">avg_late</span><span class="si">:</span><span class="s2">&gt;7.2f</span><span class="si">}</span><span class="s2">    </span><span class="si">{</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_latest</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">1000.0</span><span class="p">)</span><span class="si">:</span><span class="s2">&gt;6.2f</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">return</span> <span class="n">rst</span></div>
+
+
+
+<span class="c1"># =============================================================================</span>
+
+<span class="c1"># Maximum number of scheduler debug entries to keep (oldest dropped when full).</span>
+<span class="n">SCHEDULER_DEBUG_MAX</span> <span class="o">=</span> <span class="mi">64</span>
+
+
+<div class="viewcode-block" id="TaskList">
+<a class="viewcode-back" href="../api.html#cotask.TaskList">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">TaskList</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;List of tasks used by the scheduler.</span>
+
+<span class="sd">    Holds all tasks that will be run by the scheduler. Typically you only</span>
+<span class="sd">    add tasks (append) and call the scheduler (rr_sched or pri_sched). The</span>
+<span class="sd">    list is sorted by priority so the scheduler can quickly find the</span>
+<span class="sd">    highest-priority ready task. Scheduling can be priority-based or</span>
+<span class="sd">    round-robin.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the task list.</span>
+
+<span class="sd">        Creates an empty priority list structure. pri_list holds sublists</span>
+<span class="sd">        per priority level; each sublist has [priority, index, task, ...].</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pri_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scheduler_debug</span><span class="o">=</span><span class="p">[]</span>
+
+
+    <span class="c1">## Append a task to the task list. The list will be sorted by task </span>
+    <span class="c1">#  priorities so that the scheduler can quickly find the highest priority</span>
+    <span class="c1">#  task which is ready to run at any given time. </span>
+    <span class="c1">#  @param task The task to be appended to the list</span>
+<div class="viewcode-block" id="TaskList.append">
+<a class="viewcode-back" href="../api.html#cotask.TaskList.append">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">append</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Append a task to the list.</span>
+
+<span class="sd">        The list is kept sorted by priority (highest first) so the scheduler</span>
+<span class="sd">        can quickly find the highest-priority ready task.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            task: Task instance to add (e.g. a :class:`Task`).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># See if there&#39;s a tasklist with the given priority in the main list</span>
+        <span class="n">new_pri</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">priority</span>
+        <span class="k">for</span> <span class="n">pri</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pri_list</span><span class="p">:</span>
+            <span class="c1"># If a tasklist with this priority exists, add this task to it.</span>
+            <span class="k">if</span> <span class="n">pri</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">new_pri</span><span class="p">:</span>
+                <span class="n">pri</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">task</span><span class="p">)</span>
+                <span class="k">break</span>
+
+        <span class="c1"># If the priority isn&#39;t in the list, this else clause starts a new </span>
+        <span class="c1"># priority list with this task as first one. A priority list has the</span>
+        <span class="c1"># priority as element 0, an index into the list of tasks (used for</span>
+        <span class="c1"># round-robin scheduling those tasks) as the second item, and tasks</span>
+        <span class="c1"># after those</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pri_list</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">new_pri</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">task</span><span class="p">])</span>
+
+        <span class="c1"># Make sure the main list (of lists at each priority) is sorted</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pri_list</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">pri</span><span class="p">:</span> <span class="n">pri</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+
+
+    <span class="nd">@micropython</span><span class="o">.</span><span class="n">native</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">rr_sched</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Run tasks in round-robin order, ignoring priority.</span>
+
+<span class="sd">        Each call iterates through all tasks and gives each one a chance to</span>
+<span class="sd">        run. Higher-priority tasks are visited first, but over time every task</span>
+<span class="sd">        runs about equally often.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># For each priority level, run all tasks at that level</span>
+        <span class="k">for</span> <span class="n">pri</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pri_list</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="n">pri</span><span class="p">[</span><span class="mi">2</span><span class="p">:]:</span>
+                <span class="n">task</span><span class="o">.</span><span class="n">schedule</span><span class="p">()</span>
+
+
+    <span class="nd">@micropython</span><span class="o">.</span><span class="n">native</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">pri_sched</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Run the single highest-priority task that is ready.</span>
+
+<span class="sd">        Each call finds the highest-priority task that is ready and runs it</span>
+<span class="sd">        once (one generator step). Within a priority level, tasks are</span>
+<span class="sd">        scheduled in round-robin order.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Go down the list of priorities, beginning with the highest</span>
+        <span class="k">for</span> <span class="n">pri</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pri_list</span><span class="p">:</span>
+            <span class="c1"># Within each priority list, run tasks in round-robin order</span>
+            <span class="c1"># Each priority list is [priority, index, task, task, ...] where</span>
+            <span class="c1"># index is the index of the next task in the list to be run</span>
+            <span class="n">tries</span> <span class="o">=</span> <span class="mi">2</span>
+            <span class="n">length</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">pri</span><span class="p">)</span>
+            <span class="k">while</span> <span class="n">tries</span> <span class="o">&lt;</span> <span class="n">length</span><span class="p">:</span>
+                <span class="n">dstart</span> <span class="o">=</span> <span class="n">utime</span><span class="o">.</span><span class="n">ticks_us</span><span class="p">()</span>
+                <span class="n">ran</span> <span class="o">=</span> <span class="n">pri</span><span class="p">[</span><span class="n">pri</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span><span class="o">.</span><span class="n">schedule</span><span class="p">()</span>
+                <span class="n">scheduler_time</span> <span class="o">=</span> <span class="n">utime</span><span class="o">.</span><span class="n">ticks_diff</span><span class="p">(</span><span class="n">utime</span><span class="o">.</span><span class="n">ticks_us</span><span class="p">(),</span> <span class="n">dstart</span><span class="p">)</span>
+                <span class="c1"># Keep only the last SCHEDULER_DEBUG_MAX entries</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scheduler_debug</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">SCHEDULER_DEBUG_MAX</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">scheduler_debug</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">scheduler_debug</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">pri</span><span class="p">[</span><span class="n">pri</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">scheduler_time</span><span class="si">:</span><span class="s1">.3f</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">])</span>
+                <span class="n">tries</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">pri</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="n">pri</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">length</span><span class="p">:</span>
+                    <span class="n">pri</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+                <span class="k">if</span> <span class="n">ran</span><span class="p">:</span>
+                    <span class="k">return</span>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">ret_str</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\r\n</span><span class="s1">TASK              PRI PERIOD RUNS  AVG_MS   MAX_MS AVG_LAT  MAX_LAT</span><span class="se">\r\n</span><span class="s1">&#39;</span>
+        <span class="k">for</span> <span class="n">pri</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pri_list</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="n">pri</span><span class="p">[</span><span class="mi">2</span><span class="p">:]:</span>
+                <span class="n">ret_str</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="n">task</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\r\n</span><span class="s1">&#39;</span>
+
+        <span class="k">return</span> <span class="n">ret_str</span></div>
+
+
+
+<span class="c1"># Main task list created when cotask is imported; add tasks here and call</span>
+<span class="c1"># rr_sched() or pri_sched() to run them.</span>
+<span class="n">task_list</span> <span class="o">=</span> <span class="n">TaskList</span><span class="p">()</span>
+
+
+
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Max Soury and Shafiq Amat.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

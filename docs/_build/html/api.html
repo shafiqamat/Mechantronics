@@ -1,0 +1,840 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>API Reference &mdash; Mechatronics final 1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=29a6c3e3"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Mechatronics final
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">API Reference</a><ul>
+<li><a class="reference internal" href="#motor.Motor"><code class="docutils literal notranslate"><span class="pre">Motor</span></code></a><ul>
+<li><a class="reference internal" href="#motor.Motor.disable"><code class="docutils literal notranslate"><span class="pre">Motor.disable()</span></code></a></li>
+<li><a class="reference internal" href="#motor.Motor.enable"><code class="docutils literal notranslate"><span class="pre">Motor.enable()</span></code></a></li>
+<li><a class="reference internal" href="#motor.Motor.set_effort"><code class="docutils literal notranslate"><span class="pre">Motor.set_effort()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#IMU_driver.BNO055"><code class="docutils literal notranslate"><span class="pre">BNO055</span></code></a><ul>
+<li><a class="reference internal" href="#IMU_driver.BNO055.cal_status"><code class="docutils literal notranslate"><span class="pre">BNO055.cal_status()</span></code></a></li>
+<li><a class="reference internal" href="#IMU_driver.BNO055.euler"><code class="docutils literal notranslate"><span class="pre">BNO055.euler()</span></code></a></li>
+<li><a class="reference internal" href="#IMU_driver.BNO055.get_accel_mps2"><code class="docutils literal notranslate"><span class="pre">BNO055.get_accel_mps2()</span></code></a></li>
+<li><a class="reference internal" href="#IMU_driver.BNO055.get_accel_raw"><code class="docutils literal notranslate"><span class="pre">BNO055.get_accel_raw()</span></code></a></li>
+<li><a class="reference internal" href="#IMU_driver.BNO055.get_ang_velocity"><code class="docutils literal notranslate"><span class="pre">BNO055.get_ang_velocity()</span></code></a></li>
+<li><a class="reference internal" href="#IMU_driver.BNO055.get_linear_accel_mps2"><code class="docutils literal notranslate"><span class="pre">BNO055.get_linear_accel_mps2()</span></code></a></li>
+<li><a class="reference internal" href="#IMU_driver.BNO055.get_linear_accel_raw"><code class="docutils literal notranslate"><span class="pre">BNO055.get_linear_accel_raw()</span></code></a></li>
+<li><a class="reference internal" href="#IMU_driver.BNO055.get_mode"><code class="docutils literal notranslate"><span class="pre">BNO055.get_mode()</span></code></a></li>
+<li><a class="reference internal" href="#IMU_driver.BNO055.heading"><code class="docutils literal notranslate"><span class="pre">BNO055.heading()</span></code></a></li>
+<li><a class="reference internal" href="#IMU_driver.BNO055.read_cal_coeffs"><code class="docutils literal notranslate"><span class="pre">BNO055.read_cal_coeffs()</span></code></a></li>
+<li><a class="reference internal" href="#IMU_driver.BNO055.set_mode"><code class="docutils literal notranslate"><span class="pre">BNO055.set_mode()</span></code></a></li>
+<li><a class="reference internal" href="#IMU_driver.BNO055.write_cal_coeffs"><code class="docutils literal notranslate"><span class="pre">BNO055.write_cal_coeffs()</span></code></a></li>
+<li><a class="reference internal" href="#IMU_driver.BNO055.yaw_rate"><code class="docutils literal notranslate"><span class="pre">BNO055.yaw_rate()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#task_user.task_user"><code class="docutils literal notranslate"><span class="pre">task_user</span></code></a><ul>
+<li><a class="reference internal" href="#task_user.task_user.run"><code class="docutils literal notranslate"><span class="pre">task_user.run()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#task_controller.task_controller"><code class="docutils literal notranslate"><span class="pre">task_controller</span></code></a><ul>
+<li><a class="reference internal" href="#task_controller.task_controller.run"><code class="docutils literal notranslate"><span class="pre">task_controller.run()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#task_share.BaseShare"><code class="docutils literal notranslate"><span class="pre">BaseShare</span></code></a></li>
+<li><a class="reference internal" href="#task_share.Queue"><code class="docutils literal notranslate"><span class="pre">Queue</span></code></a><ul>
+<li><a class="reference internal" href="#task_share.Queue.any"><code class="docutils literal notranslate"><span class="pre">Queue.any()</span></code></a></li>
+<li><a class="reference internal" href="#task_share.Queue.clear"><code class="docutils literal notranslate"><span class="pre">Queue.clear()</span></code></a></li>
+<li><a class="reference internal" href="#task_share.Queue.empty"><code class="docutils literal notranslate"><span class="pre">Queue.empty()</span></code></a></li>
+<li><a class="reference internal" href="#task_share.Queue.full"><code class="docutils literal notranslate"><span class="pre">Queue.full()</span></code></a></li>
+<li><a class="reference internal" href="#task_share.Queue.get"><code class="docutils literal notranslate"><span class="pre">Queue.get()</span></code></a></li>
+<li><a class="reference internal" href="#task_share.Queue.num_in"><code class="docutils literal notranslate"><span class="pre">Queue.num_in()</span></code></a></li>
+<li><a class="reference internal" href="#task_share.Queue.put"><code class="docutils literal notranslate"><span class="pre">Queue.put()</span></code></a></li>
+<li><a class="reference internal" href="#task_share.Queue.ser_num"><code class="docutils literal notranslate"><span class="pre">Queue.ser_num</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#task_share.Share"><code class="docutils literal notranslate"><span class="pre">Share</span></code></a><ul>
+<li><a class="reference internal" href="#task_share.Share.get"><code class="docutils literal notranslate"><span class="pre">Share.get()</span></code></a></li>
+<li><a class="reference internal" href="#task_share.Share.put"><code class="docutils literal notranslate"><span class="pre">Share.put()</span></code></a></li>
+<li><a class="reference internal" href="#task_share.Share.ser_num"><code class="docutils literal notranslate"><span class="pre">Share.ser_num</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#task_share.show_all"><code class="docutils literal notranslate"><span class="pre">show_all()</span></code></a></li>
+<li><a class="reference internal" href="#cotask.Task"><code class="docutils literal notranslate"><span class="pre">Task</span></code></a><ul>
+<li><a class="reference internal" href="#cotask.Task.get_trace"><code class="docutils literal notranslate"><span class="pre">Task.get_trace()</span></code></a></li>
+<li><a class="reference internal" href="#cotask.Task.go"><code class="docutils literal notranslate"><span class="pre">Task.go()</span></code></a></li>
+<li><a class="reference internal" href="#cotask.Task.ready"><code class="docutils literal notranslate"><span class="pre">Task.ready()</span></code></a></li>
+<li><a class="reference internal" href="#cotask.Task.reset_profile"><code class="docutils literal notranslate"><span class="pre">Task.reset_profile()</span></code></a></li>
+<li><a class="reference internal" href="#cotask.Task.schedule"><code class="docutils literal notranslate"><span class="pre">Task.schedule()</span></code></a></li>
+<li><a class="reference internal" href="#cotask.Task.set_period"><code class="docutils literal notranslate"><span class="pre">Task.set_period()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#cotask.TaskList"><code class="docutils literal notranslate"><span class="pre">TaskList</span></code></a><ul>
+<li><a class="reference internal" href="#cotask.TaskList.append"><code class="docutils literal notranslate"><span class="pre">TaskList.append()</span></code></a></li>
+<li><a class="reference internal" href="#cotask.TaskList.pri_sched"><code class="docutils literal notranslate"><span class="pre">TaskList.pri_sched()</span></code></a></li>
+<li><a class="reference internal" href="#cotask.TaskList.rr_sched"><code class="docutils literal notranslate"><span class="pre">TaskList.rr_sched()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#linesen.sensor"><code class="docutils literal notranslate"><span class="pre">sensor</span></code></a><ul>
+<li><a class="reference internal" href="#linesen.sensor.get_pos"><code class="docutils literal notranslate"><span class="pre">sensor.get_pos()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Mechatronics final</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">API Reference</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/api.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-motor">
+<span id="api-reference"></span><h1>API Reference<a class="headerlink" href="#module-motor" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="motor.Motor">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">motor.</span></span><span class="sig-name descname"><span class="pre">Motor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">PWM</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">DIR</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nSLP</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timernumber</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channelnumber</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/motor.html#Motor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#motor.Motor" title="Link to this definition"></a></dt>
+<dd><p>A motor driver interface encapsulated in a Python class. Works with
+motor drivers using separate PWM and direction inputs such as the DRV8838
+drivers present on the Romi chassis from Pololu.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="motor.Motor.disable">
+<span class="sig-name descname"><span class="pre">disable</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/motor.html#Motor.disable"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#motor.Motor.disable" title="Link to this definition"></a></dt>
+<dd><p>Disables the motor driver by taking it into sleep mode</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="motor.Motor.enable">
+<span class="sig-name descname"><span class="pre">enable</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/motor.html#Motor.enable"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#motor.Motor.enable" title="Link to this definition"></a></dt>
+<dd><p>Enables the motor driver by taking it out of sleep mode into brake mode</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="motor.Motor.set_effort">
+<span class="sig-name descname"><span class="pre">set_effort</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">effort</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/motor.html#Motor.set_effort"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#motor.Motor.set_effort" title="Link to this definition"></a></dt>
+<dd><p>Sets the effort requested from the motor based on an input value
+between -100 and 100.</p>
+<blockquote>
+<div><dl class="field-list simple">
+<dt class="field-odd">param effort<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The effort requested from the motor.</p>
+</dd>
+<dt class="field-even">type effort<span class="colon">:</span></dt>
+<dd class="field-even"><p>int</p>
+</dd>
+<dt class="field-odd">returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class" id="module-IMU_driver">
+<dt class="sig sig-object py" id="IMU_driver.BNO055">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">IMU_driver.</span></span><span class="sig-name descname"><span class="pre">BNO055</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">i2c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">address</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/IMU_driver.html#BNO055"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#IMU_driver.BNO055" title="Link to this definition"></a></dt>
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="IMU_driver.BNO055.cal_status">
+<span class="sig-name descname"><span class="pre">cal_status</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/IMU_driver.html#BNO055.cal_status"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#IMU_driver.BNO055.cal_status" title="Link to this definition"></a></dt>
+<dd><p>returns a string that classifies the current calibrations status of the
+IMU. Call print on this function to print to terminal, or check to see
+if status has certian strings inside of it to calibrate without printing</p>
+<dl class="field-list simple">
+<dt class="field-odd">Param<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>status (The current calibration status of the IMU)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+<dt class="field-even">Notes<span class="colon">:</span></dt>
+<dd class="field-even"><p></p></dd>
+</dl>
+<ul class="simple">
+<li><p>SYSTEM CALIBRAITION COMPLETE: All systems are calibrated.</p></li>
+<li><p>SYSTEM PARTLY CALIBRATED: Some systems are calibrated.</p></li>
+<li><p>SYSTEM NOT CALIBRAITED: No systems are calibrated.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="IMU_driver.BNO055.euler">
+<span class="sig-name descname"><span class="pre">euler</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/IMU_driver.html#BNO055.euler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#IMU_driver.BNO055.euler" title="Link to this definition"></a></dt>
+<dd><p>Returns the Euler angles of the IMU.
+:param: None
+:returns: angles (The Euler angles of the IMU)
+:return type: tuple
+:notes: tuple returned - (heading,roll,pitch)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="IMU_driver.BNO055.get_accel_mps2">
+<span class="sig-name descname"><span class="pre">get_accel_mps2</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/IMU_driver.html#BNO055.get_accel_mps2"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#IMU_driver.BNO055.get_accel_mps2" title="Link to this definition"></a></dt>
+<dd><p>Returns the unit-converted acceleration of the IMU.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Param<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>lin_accels (The linear acceleration of the IMU)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+<dt class="field-even">Notes<span class="colon">:</span></dt>
+<dd class="field-even"><p>tuple returned - (accX,accY,accZ) each an integer in m/s^2. Due to orientation of the IMU on the robot X and Y are switched.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="IMU_driver.BNO055.get_accel_raw">
+<span class="sig-name descname"><span class="pre">get_accel_raw</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/IMU_driver.html#BNO055.get_accel_raw"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#IMU_driver.BNO055.get_accel_raw" title="Link to this definition"></a></dt>
+<dd><p>Returns the raw acceleration of the IMU.
+:param: None
+:returns: accels (The raw acceleration of the IMU)
+:return type: tuple
+:notes: tuple returned - (accX,accY,accZ) each 16bit signed int raw register value.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="IMU_driver.BNO055.get_ang_velocity">
+<span class="sig-name descname"><span class="pre">get_ang_velocity</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/IMU_driver.html#BNO055.get_ang_velocity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#IMU_driver.BNO055.get_ang_velocity" title="Link to this definition"></a></dt>
+<dd><p>Returns the angular velocity of the IMU.
+:param: None
+:returns: omegas (The angular velocity of the IMU)
+:return type: tuple
+:notes: tuple returned - (gyrX,gyrY,gyrZ)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="IMU_driver.BNO055.get_linear_accel_mps2">
+<span class="sig-name descname"><span class="pre">get_linear_accel_mps2</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/IMU_driver.html#BNO055.get_linear_accel_mps2"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#IMU_driver.BNO055.get_linear_accel_mps2" title="Link to this definition"></a></dt>
+<dd><p>Returns the unit-converted linear acceleration of the IMU.
+:param: None
+:returns: lin_accels (The linear acceleration of the IMU)
+:return type: tuple
+:notes: tuple returned - (linx,liny,linz) each an integer in m/s^2. Due to orientation of the IMU on the robot X and Y are switched.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="IMU_driver.BNO055.get_linear_accel_raw">
+<span class="sig-name descname"><span class="pre">get_linear_accel_raw</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/IMU_driver.html#BNO055.get_linear_accel_raw"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#IMU_driver.BNO055.get_linear_accel_raw" title="Link to this definition"></a></dt>
+<dd><p>Returns the linear acceleration of the IMU (gravity compensated by fusion).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Param<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>lin_accels (The linear acceleration of the IMU)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+<dt class="field-even">Notes<span class="colon">:</span></dt>
+<dd class="field-even"><p>tuple returned - (linX,linY,linZ) each 16bit signed int raw value.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="IMU_driver.BNO055.get_mode">
+<span class="sig-name descname"><span class="pre">get_mode</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/IMU_driver.html#BNO055.get_mode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#IMU_driver.BNO055.get_mode" title="Link to this definition"></a></dt>
+<dd><p>Returns the current mode of the IMU.
+:param: None
+:returns: mode (The current mode of the IMU)
+:return type: str</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="IMU_driver.BNO055.heading">
+<span class="sig-name descname"><span class="pre">heading</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/IMU_driver.html#BNO055.heading"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#IMU_driver.BNO055.heading" title="Link to this definition"></a></dt>
+<dd><p>Returns the heading of the IMU.
+:param: None
+:returns: heading (The heading of the IMU)
+:return type: int
+:notes: heading is in degrees.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="IMU_driver.BNO055.read_cal_coeffs">
+<span class="sig-name descname"><span class="pre">read_cal_coeffs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/IMU_driver.html#BNO055.read_cal_coeffs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#IMU_driver.BNO055.read_cal_coeffs" title="Link to this definition"></a></dt>
+<dd><p>reads the calibration coefficents of the IMU and puts them into a tuple
+that has order accX,accY,accZ,magX,magY,magZ,gyoX,gyoY,gyoZ,accR,magR</p>
+<dl class="field-list simple">
+<dt class="field-odd">Param<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None
+None</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>values (The calibration coefficients of the IMU)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+<dt class="field-even">Notes<span class="colon">:</span></dt>
+<dd class="field-even"><p>tuple returned - (accX,accY,accZ,magX,magY,magZ,gyoX,gyoY,gyoZ,accR,magR)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="IMU_driver.BNO055.set_mode">
+<span class="sig-name descname"><span class="pre">set_mode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mode</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/IMU_driver.html#BNO055.set_mode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#IMU_driver.BNO055.set_mode" title="Link to this definition"></a></dt>
+<dd><p>Takes in a string and sets the mode of the IMU to one of the 5 fusion modes</p>
+<dl class="field-list simple">
+<dt class="field-odd">Param<span class="colon">:</span></dt>
+<dd class="field-odd"><p>mode (The mode to set the IMU to)</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>type</strong> – str</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p>ValueError: If mode is not a valid fusion mode on IMU (CONFIG, IMU, COMPASS, M4G, NDOF, NDOFoff).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="IMU_driver.BNO055.write_cal_coeffs">
+<span class="sig-name descname"><span class="pre">write_cal_coeffs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">blob</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/IMU_driver.html#BNO055.write_cal_coeffs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#IMU_driver.BNO055.write_cal_coeffs" title="Link to this definition"></a></dt>
+<dd><p>writes calibration coefficents into the imu
+:param: blob (The calibration coefficients of the IMU)
+:param type: tuple
+:returns: None
+:notes: tuple returned - (accX,accY,accZ,magX,magY,magZ,gyoX,gyoY,gyoZ,accR,magR)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="IMU_driver.BNO055.yaw_rate">
+<span class="sig-name descname"><span class="pre">yaw_rate</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/IMU_driver.html#BNO055.yaw_rate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#IMU_driver.BNO055.yaw_rate" title="Link to this definition"></a></dt>
+<dd><p>Returns the yaw rate of the IMU.
+:param: None
+:returns: yaw (The yaw rate of the IMU)
+:return type: int
+:notes: yaw is in degrees/second.</p>
+</dd></dl>
+
+</dd></dl>
+
+<p id="module-task_user">This file demonstrates an example UI task using a custom class with a
+run method implemented as a generator</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="task_user.task_user">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">task_user.</span></span><span class="sig-name descname"><span class="pre">task_user</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">setpoint</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gainP</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gainI</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">speed</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">line</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">leftMotorGo</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rightMotorGo</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">leftDataValues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">leftTimeValues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rightDataValues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rightTimeValues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centroidValues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centroidTime</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">esty</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">startTime</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/task_user.html#task_user"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#task_user.task_user" title="Link to this definition"></a></dt>
+<dd><p>A class that represents a UI task. The task is responsible for reading user
+input over a serial port, parsing the input for single-character commands,
+and then manipulating shared variables to communicate with other tasks based
+on the user commands.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="task_user.task_user.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/task_user.html#task_user.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#task_user.task_user.run" title="Link to this definition"></a></dt>
+<dd><p>implements the ui as a finite state machine with states for main menu, input, help menu, gain selection, setpoint selection, start the test, line following menu, task list table, and track the line.
+:param: None
+:returns: None
+:notes: The task_user class is a Finite State Machine with states for main menu, input, help menu, gain selection, setpoint selection, start the test, line following menu, task list table, and track the line.
+The task_user class is responsible for reading user input over a serial port, parsing the input for single-character commands,
+and then manipulating shared variables to communicate with other tasks based on the user commands.</p>
+</dd></dl>
+
+</dd></dl>
+
+<p id="module-task_controller">Created on Thu Feb  5 13:24:14 2026</p>
+<p>&#64;author: maxwe</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="task_controller.task_controller">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">task_controller.</span></span><span class="sig-name descname"><span class="pre">task_controller</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Kp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ki</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">setpoint</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">speed</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">line</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R_pos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R_err</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">L_pos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">L_err</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centroidValues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centroidTime</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">esty</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">heading</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/task_controller.html#task_controller"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#task_controller.task_controller" title="Link to this definition"></a></dt>
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="task_controller.task_controller.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/task_controller.html#task_controller.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#task_controller.task_controller.run" title="Link to this definition"></a></dt>
+<dd><p>Runs the task_controller class as a Finite State Machine with states for idle, step, line, state estimation, and turn.
+:param: None
+:returns: None</p>
+</dd></dl>
+
+</dd></dl>
+
+<p id="module-task_share">Thread-safe queues and shared variables for cooperative tasks.</p>
+<p>This module provides queue and share abstractions that allow tasks to pass data
+without risk of corruption from interrupts or pre-emptive multithreading.
+It is designed for MicroPython-based embedded systems using the <code class="docutils literal notranslate"><span class="pre">pyb</span></code> API.</p>
+<p>Typical usage:</p>
+<blockquote>
+<div><p>Using a queue:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">task_share</span>
+
+<span class="c1"># This queue holds unsigned short (16-bit) integers</span>
+<span class="n">my_queue</span> <span class="o">=</span> <span class="n">task_share</span><span class="o">.</span><span class="n">Queue</span><span class="p">(</span><span class="s1">&#39;H&#39;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;My Queue&#39;</span><span class="p">)</span>
+
+<span class="c1"># In one task, put data into the queue</span>
+<span class="n">my_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">some_data</span><span class="p">)</span>
+
+<span class="c1"># In another task, read data from the queue</span>
+<span class="n">something</span> <span class="o">=</span> <span class="n">my_queue</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Using a share:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">task_share</span>
+
+<span class="c1"># This share holds a signed short (16-bit) integer</span>
+<span class="n">my_share</span> <span class="o">=</span> <span class="n">task_share</span><span class="o">.</span><span class="n">Share</span><span class="p">(</span><span class="s1">&#39;h&#39;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;My Share&#39;</span><span class="p">)</span>
+
+<span class="c1"># In one task, write data</span>
+<span class="n">my_share</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">some_data</span><span class="p">)</span>
+
+<span class="c1"># In another task, read data</span>
+<span class="n">something</span> <span class="o">=</span> <span class="n">my_share</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+</pre></div>
+</div>
+</div></blockquote>
+<dl class="simple">
+<dt>Module contents:</dt><dd><ul class="simple">
+<li><p><strong>BaseShare</strong> – Common base class for <a class="reference internal" href="#task_share.Queue" title="task_share.Queue"><code class="xref py py-class docutils literal notranslate"><span class="pre">Queue</span></code></a> and <a class="reference internal" href="#task_share.Share" title="task_share.Share"><code class="xref py py-class docutils literal notranslate"><span class="pre">Share</span></code></a>.</p></li>
+<li><p><strong>Queue</strong> – Ring buffer for passing multiple values between tasks.</p></li>
+<li><p><strong>Share</strong> – Single-value container for sharing the latest value.</p></li>
+<li><p><strong>share_list</strong> – Global list of all shares and queues (for diagnostics).</p></li>
+<li><p><strong>type_code_strings</strong> – Mapping from <code class="docutils literal notranslate"><span class="pre">array</span></code> type codes to readable
+type names.</p></li>
+<li><p><strong>show_all()</strong> – Return a diagnostic string describing all shares/queues.</p></li>
+</ul>
+</dd>
+</dl>
+<p>Copyright (c) 2017-2023 JR Ridgely.
+Released under the GNU Public License v3.0.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="task_share.BaseShare">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">task_share.</span></span><span class="sig-name descname"><span class="pre">BaseShare</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type_code</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thread_protect</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/task_share.html#BaseShare"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#task_share.BaseShare" title="Link to this definition"></a></dt>
+<dd><p>Base class for queues and shares which exchange data between tasks.</p>
+<p>This class isn’t used directly; it just factors out behavior common to
+<a class="reference internal" href="#task_share.Queue" title="task_share.Queue"><code class="xref py py-class docutils literal notranslate"><span class="pre">Queue</span></code></a> and <a class="reference internal" href="#task_share.Share" title="task_share.Share"><code class="xref py py-class docutils literal notranslate"><span class="pre">Share</span></code></a> (type code, thread protection, and
+registration in <code class="xref py py-data docutils literal notranslate"><span class="pre">share_list</span></code>).</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="task_share.Queue">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">task_share.</span></span><span class="sig-name descname"><span class="pre">Queue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type_code</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thread_protect</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overwrite</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/task_share.html#Queue"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#task_share.Queue" title="Link to this definition"></a></dt>
+<dd><p>Queue used to transfer data from one task to another.</p>
+<p>A <a class="reference internal" href="#task_share.Queue" title="task_share.Queue"><code class="xref py py-class docutils literal notranslate"><span class="pre">Queue</span></code></a> is a ring buffer holding elements of a uniform type
+(given by an <code class="docutils literal notranslate"><span class="pre">array</span></code> type code). It is safe for use with interrupts or
+pre-emptive scheduling if <code class="docutils literal notranslate"><span class="pre">thread_protect</span></code> is enabled.</p>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">task_share</span>
+
+<span class="c1"># Unsigned 16-bit samples</span>
+<span class="n">samples</span> <span class="o">=</span> <span class="n">task_share</span><span class="o">.</span><span class="n">Queue</span><span class="p">(</span><span class="s1">&#39;H&#39;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Samples&#39;</span><span class="p">)</span>
+
+<span class="c1"># In producer task</span>
+<span class="n">samples</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+<span class="c1"># In consumer task</span>
+<span class="k">if</span> <span class="n">samples</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="n">samples</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="task_share.Queue.any">
+<span class="sig-name descname"><span class="pre">any</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#task_share.Queue.any" title="Link to this definition"></a></dt>
+<dd><p>Return True if there is at least one item in the queue.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_share.Queue.clear">
+<span class="sig-name descname"><span class="pre">clear</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/task_share.html#Queue.clear"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#task_share.Queue.clear" title="Link to this definition"></a></dt>
+<dd><p>Remove all contents from the queue and reset counters.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_share.Queue.empty">
+<span class="sig-name descname"><span class="pre">empty</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#task_share.Queue.empty" title="Link to this definition"></a></dt>
+<dd><p>Return True if the queue is empty.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_share.Queue.full">
+<span class="sig-name descname"><span class="pre">full</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#task_share.Queue.full" title="Link to this definition"></a></dt>
+<dd><p>Return True if the queue is full (no more room for new items).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_share.Queue.get">
+<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">in_ISR</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_share.Queue.get" title="Link to this definition"></a></dt>
+<dd><p>Read and remove one item from the queue.</p>
+<p>This method blocks (busy-waits) until an item is available.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>in_ISR</strong> – True if called from interrupt context.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The dequeued item.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_share.Queue.num_in">
+<span class="sig-name descname"><span class="pre">num_in</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#task_share.Queue.num_in" title="Link to this definition"></a></dt>
+<dd><p>Return the current number of items in the queue.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_share.Queue.put">
+<span class="sig-name descname"><span class="pre">put</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">item</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">in_ISR</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_share.Queue.put" title="Link to this definition"></a></dt>
+<dd><p>Put an item into the queue.</p>
+<p>If the queue is full and <code class="docutils literal notranslate"><span class="pre">overwrite</span></code> is False, this method blocks
+(busy-waits) until there is room. In an ISR, it returns immediately
+if the queue is full.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>item</strong> – Value to enqueue.</p></li>
+<li><p><strong>in_ISR</strong> – True if called from an interrupt context.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="task_share.Queue.ser_num">
+<span class="sig-name descname"><span class="pre">ser_num</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></span><a class="headerlink" href="#task_share.Queue.ser_num" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="task_share.Share">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">task_share.</span></span><span class="sig-name descname"><span class="pre">Share</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type_code</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thread_protect</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/task_share.html#Share"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#task_share.Share" title="Link to this definition"></a></dt>
+<dd><p>Single-value shared data item used between tasks.</p>
+<p>A <a class="reference internal" href="#task_share.Share" title="task_share.Share"><code class="xref py py-class docutils literal notranslate"><span class="pre">Share</span></code></a> holds the latest value of a single variable of a given
+type. With <code class="docutils literal notranslate"><span class="pre">thread_protect</span></code> enabled, reads and writes are protected
+against corruption by interrupts or pre-emptive scheduling.</p>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">task_share</span>
+
+<span class="n">my_share</span> <span class="o">=</span> <span class="n">task_share</span><span class="o">.</span><span class="n">Share</span><span class="p">(</span><span class="s1">&#39;h&#39;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;My Share&#39;</span><span class="p">)</span>
+<span class="n">my_share</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+<span class="n">latest</span> <span class="o">=</span> <span class="n">my_share</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="task_share.Share.get">
+<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">in_ISR</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_share.Share.get" title="Link to this definition"></a></dt>
+<dd><p>Read and return the current value of the share.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>in_ISR</strong> – True if called from interrupt context.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The value currently stored in the share.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="task_share.Share.put">
+<span class="sig-name descname"><span class="pre">put</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">in_ISR</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#task_share.Share.put" title="Link to this definition"></a></dt>
+<dd><p>Write a new value into the share, overwriting any previous value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – New value to store.</p></li>
+<li><p><strong>in_ISR</strong> – True if called from interrupt context.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="task_share.Share.ser_num">
+<span class="sig-name descname"><span class="pre">ser_num</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></span><a class="headerlink" href="#task_share.Share.ser_num" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="task_share.show_all">
+<span class="sig-prename descclassname"><span class="pre">task_share.</span></span><span class="sig-name descname"><span class="pre">show_all</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/task_share.html#show_all"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#task_share.show_all" title="Link to this definition"></a></dt>
+<dd><p>Return a diagnostic string describing all queues and shares.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>One line per share/queue, joined with newlines.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p id="module-cotask">Cooperative task scheduling for MicroPython multitasking.</p>
+<p>This module provides classes to run cooperatively scheduled tasks in a
+multitasking system. Tasks are created as generators: functions with infinite
+loops that call <code class="docutils literal notranslate"><span class="pre">yield</span></code> at least once per loop. References to all
+tasks are kept in a list maintained by <a class="reference internal" href="#cotask.TaskList" title="cotask.TaskList"><code class="xref py py-class docutils literal notranslate"><span class="pre">TaskList</span></code></a>; the scheduler runs
+each task’s generator according to a chosen algorithm (e.g. round-robin or
+highest-priority-first).</p>
+<p class="rubric">Example</p>
+<p>Create a task and run it with the scheduler:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">task1_fun</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;Switch states repeatedly.&#39;&#39;&#39;</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">state</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">state</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">elif</span> <span class="n">state</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">state</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">yield</span> <span class="n">state</span>
+
+<span class="n">task1</span> <span class="o">=</span> <span class="n">cotask</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span><span class="n">task1_fun</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Task 1&#39;</span><span class="p">,</span> <span class="n">priority</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                    <span class="n">period</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">profile</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">trace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">cotask</span><span class="o">.</span><span class="n">task_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">task1</span><span class="p">)</span>
+<span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+    <span class="n">cotask</span><span class="o">.</span><span class="n">task_list</span><span class="o">.</span><span class="n">pri_sched</span><span class="p">()</span>
+</pre></div>
+</div>
+<dl class="simple">
+<dt>Module contents:</dt><dd><ul class="simple">
+<li><p><strong>Task</strong> – Cooperative task with optional profiling and tracing.</p></li>
+<li><p><strong>TaskList</strong> – Container of tasks; supports round-robin and
+priority scheduling.</p></li>
+<li><p><strong>SCHEDULER_DEBUG_MAX</strong> – Maximum number of scheduler debug entries
+to keep (default 64; oldest dropped when full).</p></li>
+<li><p><strong>task_list</strong> – Default <a class="reference internal" href="#cotask.TaskList" title="cotask.TaskList"><code class="xref py py-class docutils literal notranslate"><span class="pre">TaskList</span></code></a> instance created on import;
+append tasks here and call <a class="reference internal" href="#cotask.TaskList.pri_sched" title="cotask.TaskList.pri_sched"><code class="xref py py-meth docutils literal notranslate"><span class="pre">TaskList.pri_sched()</span></code></a> or
+<a class="reference internal" href="#cotask.TaskList.rr_sched" title="cotask.TaskList.rr_sched"><code class="xref py py-meth docutils literal notranslate"><span class="pre">TaskList.rr_sched()</span></code></a> to run them.</p></li>
+</ul>
+</dd>
+</dl>
+<p>Copyright (c) 2017-2023 JR Ridgely. Released under the GNU Public License v3.0.
+Intended for educational use; use is not limited thereto.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="cotask.Task">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">cotask.</span></span><span class="sig-name descname"><span class="pre">Task</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">run_fun</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'NoName'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">priority</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">period</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">profile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shares</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cotask.html#Task"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cotask.Task" title="Link to this definition"></a></dt>
+<dd><p>Cooperative task with scheduling and optional performance logging.</p>
+<p>Implements behavior common to tasks in a cooperative multitasking system
+under MicroPython. A task can be scheduled by time (period) or by an
+external trigger (e.g. interrupt or another task). State transitions can
+be traced and run times profiled. Task code must be a generator that
+yields the current state (and the CPU) after running for a short, bounded
+time.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="cotask.Task.get_trace">
+<span class="sig-name descname"><span class="pre">get_trace</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cotask.html#Task.get_trace"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cotask.Task.get_trace" title="Link to this definition"></a></dt>
+<dd><p>Return a string with the task’s state transition trace.</p>
+<p>The trace lists (time, from_state, to_state) for each transition,
+if tracing was enabled. Can be large.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>String showing state transitions, or “not traced” if tracing
+was disabled.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cotask.Task.go">
+<span class="sig-name descname"><span class="pre">go</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cotask.html#Task.go"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cotask.Task.go" title="Link to this definition"></a></dt>
+<dd><p>Mark the task as ready to run.</p>
+<p>Can be called from an interrupt service routine or from another task
+when data is available for this task to process.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cotask.Task.ready">
+<span class="sig-name descname"><span class="pre">ready</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#cotask.Task.ready" title="Link to this definition"></a></dt>
+<dd><p>Return whether the task is ready to run.</p>
+<p>For timer-based tasks, checks if the next run time has been reached.
+For event-triggered tasks, checks the go flag. Can be overridden in
+subclasses for custom readiness logic.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if the task is ready to run, False otherwise.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cotask.Task.reset_profile">
+<span class="sig-name descname"><span class="pre">reset_profile</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cotask.html#Task.reset_profile"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cotask.Task.reset_profile" title="Link to this definition"></a></dt>
+<dd><p>Reset execution-time profiling counters.</p>
+<p>Also used internally by __init__() to initialize profiling variables.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cotask.Task.schedule">
+<span class="sig-name descname"><span class="pre">schedule</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/cotask.html#Task.schedule"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cotask.Task.schedule" title="Link to this definition"></a></dt>
+<dd><p>Run this task once if it is ready (called by the scheduler).</p>
+<p>If the task is not ready, returns immediately. If ready, runs the
+task’s generator up to the next yield() and then returns.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if the task ran, False if it did not.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cotask.Task.set_period">
+<span class="sig-name descname"><span class="pre">set_period</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">new_period</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cotask.html#Task.set_period"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cotask.Task.set_period" title="Link to this definition"></a></dt>
+<dd><p>Set the period between task runs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>new_period</strong> – New period in milliseconds, or None to make the task
+event-triggered (via go()) instead of time-based.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cotask.TaskList">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">cotask.</span></span><span class="sig-name descname"><span class="pre">TaskList</span></span><a class="reference internal" href="_modules/cotask.html#TaskList"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cotask.TaskList" title="Link to this definition"></a></dt>
+<dd><p>List of tasks used by the scheduler.</p>
+<p>Holds all tasks that will be run by the scheduler. Typically you only
+add tasks (append) and call the scheduler (rr_sched or pri_sched). The
+list is sorted by priority so the scheduler can quickly find the
+highest-priority ready task. Scheduling can be priority-based or
+round-robin.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="cotask.TaskList.append">
+<span class="sig-name descname"><span class="pre">append</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">task</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cotask.html#TaskList.append"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cotask.TaskList.append" title="Link to this definition"></a></dt>
+<dd><p>Append a task to the list.</p>
+<p>The list is kept sorted by priority (highest first) so the scheduler
+can quickly find the highest-priority ready task.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>task</strong> – Task instance to add (e.g. a <a class="reference internal" href="#cotask.Task" title="cotask.Task"><code class="xref py py-class docutils literal notranslate"><span class="pre">Task</span></code></a>).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cotask.TaskList.pri_sched">
+<span class="sig-name descname"><span class="pre">pri_sched</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cotask.TaskList.pri_sched" title="Link to this definition"></a></dt>
+<dd><p>Run the single highest-priority task that is ready.</p>
+<p>Each call finds the highest-priority task that is ready and runs it
+once (one generator step). Within a priority level, tasks are
+scheduled in round-robin order.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cotask.TaskList.rr_sched">
+<span class="sig-name descname"><span class="pre">rr_sched</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cotask.TaskList.rr_sched" title="Link to this definition"></a></dt>
+<dd><p>Run tasks in round-robin order, ignoring priority.</p>
+<p>Each call iterates through all tasks and gives each one a chance to
+run. Higher-priority tasks are visited first, but over time every task
+runs about equally often.</p>
+</dd></dl>
+
+</dd></dl>
+
+<p id="module-linesen">Created on Wed Feb 25 18:45:39 2026</p>
+<p>&#64;author: maxwe</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="linesen.sensor">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">linesen.</span></span><span class="sig-name descname"><span class="pre">sensor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pin1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pin2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pin3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pin4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pin5</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/linesen.html#sensor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#linesen.sensor" title="Link to this definition"></a></dt>
+<dd><p>creates a class that can get the current line position in terms of a
+5 IR sensor array</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="linesen.sensor.get_pos">
+<span class="sig-name descname"><span class="pre">get_pos</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/linesen.html#sensor.get_pos"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#linesen.sensor.get_pos" title="Link to this definition"></a></dt>
+<dd><p>returns the current position of the line sensor, where zero position
+is equivilient to centered,
+:param: None
+:returns: pos (The current position of the line sensor)
+:return type: float
+:notes: float returned - the position of the line sensor, where zero position
+is equivilient to centered,
+pointing left -&gt; positive,
+pointing right -&gt; negative
+returns for 100 no read</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Max Soury and Shafiq Amat.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

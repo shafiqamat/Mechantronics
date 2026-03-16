@@ -1,0 +1,517 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>task_share &mdash; Mechatronics final 1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=29a6c3e3"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Mechatronics final
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Mechatronics final</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Module code</a></li>
+      <li class="breadcrumb-item active">task_share</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for task_share</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Thread-safe queues and shared variables for cooperative tasks.</span>
+
+<span class="sd">This module provides queue and share abstractions that allow tasks to pass data</span>
+<span class="sd">without risk of corruption from interrupts or pre-emptive multithreading.</span>
+<span class="sd">It is designed for MicroPython-based embedded systems using the ``pyb`` API.</span>
+
+<span class="sd">Typical usage:</span>
+
+<span class="sd">    Using a queue::</span>
+
+<span class="sd">        import task_share</span>
+
+<span class="sd">        # This queue holds unsigned short (16-bit) integers</span>
+<span class="sd">        my_queue = task_share.Queue(&#39;H&#39;, 100, name=&#39;My Queue&#39;)</span>
+
+<span class="sd">        # In one task, put data into the queue</span>
+<span class="sd">        my_queue.put(some_data)</span>
+
+<span class="sd">        # In another task, read data from the queue</span>
+<span class="sd">        something = my_queue.get()</span>
+
+<span class="sd">    Using a share::</span>
+
+<span class="sd">        import task_share</span>
+
+<span class="sd">        # This share holds a signed short (16-bit) integer</span>
+<span class="sd">        my_share = task_share.Share(&#39;h&#39;, name=&#39;My Share&#39;)</span>
+
+<span class="sd">        # In one task, write data</span>
+<span class="sd">        my_share.put(some_data)</span>
+
+<span class="sd">        # In another task, read data</span>
+<span class="sd">        something = my_share.get()</span>
+
+<span class="sd">Module contents:</span>
+<span class="sd">    - **BaseShare** – Common base class for :class:`Queue` and :class:`Share`.</span>
+<span class="sd">    - **Queue** – Ring buffer for passing multiple values between tasks.</span>
+<span class="sd">    - **Share** – Single-value container for sharing the latest value.</span>
+<span class="sd">    - **share_list** – Global list of all shares and queues (for diagnostics).</span>
+<span class="sd">    - **type_code_strings** – Mapping from ``array`` type codes to readable</span>
+<span class="sd">      type names.</span>
+<span class="sd">    - **show_all()** – Return a diagnostic string describing all shares/queues.</span>
+
+<span class="sd">Copyright (c) 2017-2023 JR Ridgely.</span>
+<span class="sd">Released under the GNU Public License v3.0.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">array</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">gc</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pyb</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">micropython</span>
+
+
+<span class="c1">## This is a system-wide list of all the queues and shared variables. It is</span>
+<span class="c1">#  used to create diagnostic printouts. </span>
+<span class="n">share_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+<span class="c1">## This dictionary allows readable printouts of queue and share data types.</span>
+<span class="n">type_code_strings</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;b&#39;</span> <span class="p">:</span> <span class="s2">&quot;int8&quot;</span><span class="p">,</span>   <span class="s1">&#39;B&#39;</span> <span class="p">:</span> <span class="s2">&quot;uint8&quot;</span><span class="p">,</span>
+                     <span class="s1">&#39;h&#39;</span> <span class="p">:</span> <span class="s2">&quot;int16&quot;</span><span class="p">,</span>  <span class="s1">&#39;H&#39;</span> <span class="p">:</span> <span class="s2">&quot;uint16&quot;</span><span class="p">,</span>
+                     <span class="s1">&#39;i&#39;</span> <span class="p">:</span> <span class="s2">&quot;int(?)&quot;</span><span class="p">,</span> <span class="s1">&#39;I&#39;</span> <span class="p">:</span> <span class="s2">&quot;uint(?)&quot;</span><span class="p">,</span>
+                     <span class="s1">&#39;l&#39;</span> <span class="p">:</span> <span class="s2">&quot;int32&quot;</span><span class="p">,</span>  <span class="s1">&#39;L&#39;</span> <span class="p">:</span> <span class="s2">&quot;uint32&quot;</span><span class="p">,</span>
+                     <span class="s1">&#39;q&#39;</span> <span class="p">:</span> <span class="s2">&quot;int64&quot;</span><span class="p">,</span>  <span class="s1">&#39;Q&#39;</span> <span class="p">:</span> <span class="s2">&quot;uint64&quot;</span><span class="p">,</span>
+                     <span class="s1">&#39;f&#39;</span> <span class="p">:</span> <span class="s2">&quot;float&quot;</span><span class="p">,</span>  <span class="s1">&#39;d&#39;</span> <span class="p">:</span> <span class="s2">&quot;double&quot;</span><span class="p">}</span>
+
+
+<div class="viewcode-block" id="show_all">
+<a class="viewcode-back" href="../api.html#task_share.show_all">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">show_all</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return a diagnostic string describing all queues and shares.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        str: One line per share/queue, joined with newlines.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">gen</span> <span class="o">=</span> <span class="p">(</span><span class="nb">str</span> <span class="p">(</span><span class="n">item</span><span class="p">)</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">share_list</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span> <span class="p">(</span><span class="n">gen</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="BaseShare">
+<a class="viewcode-back" href="../api.html#task_share.BaseShare">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">BaseShare</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Base class for queues and shares which exchange data between tasks.</span>
+
+<span class="sd">    This class isn&#39;t used directly; it just factors out behavior common to</span>
+<span class="sd">    :class:`Queue` and :class:`Share` (type code, thread protection, and</span>
+<span class="sd">    registration in :data:`share_list`).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span> <span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">type_code</span><span class="p">,</span> <span class="n">thread_protect</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the base part of a queue or share.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            type_code: One-letter type code as used by :class:`array.array`.</span>
+<span class="sd">            thread_protect: If True, disable/enable IRQs around accesses so</span>
+<span class="sd">                data is safe in the presence of interrupts or pre-emption.</span>
+<span class="sd">            name: Optional human-readable name for diagnostics.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_type_code</span> <span class="o">=</span> <span class="n">type_code</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_thread_protect</span> <span class="o">=</span> <span class="n">thread_protect</span>
+
+        <span class="c1"># Add this queue to the global share and queue list</span>
+        <span class="n">share_list</span><span class="o">.</span><span class="n">append</span> <span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="Queue">
+<a class="viewcode-back" href="../api.html#task_share.Queue">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Queue</span> <span class="p">(</span><span class="n">BaseShare</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Queue used to transfer data from one task to another.</span>
+
+<span class="sd">    A :class:`Queue` is a ring buffer holding elements of a uniform type</span>
+<span class="sd">    (given by an ``array`` type code). It is safe for use with interrupts or</span>
+<span class="sd">    pre-emptive scheduling if ``thread_protect`` is enabled.</span>
+
+<span class="sd">    Example::</span>
+
+<span class="sd">        import task_share</span>
+
+<span class="sd">        # Unsigned 16-bit samples</span>
+<span class="sd">        samples = task_share.Queue(&#39;H&#39;, 100, name=&#39;Samples&#39;)</span>
+
+<span class="sd">        # In producer task</span>
+<span class="sd">        samples.put(value)</span>
+
+<span class="sd">        # In consumer task</span>
+<span class="sd">        if samples.any():</span>
+<span class="sd">            v = samples.get()</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">ser_num</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span> <span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">type_code</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">thread_protect</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                  <span class="n">overwrite</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize a queue for passing data between tasks.</span>
+
+<span class="sd">        Each queue carries items of a single type. The type is specified by</span>
+<span class="sd">        an ``array`` type code, one of:</span>
+
+<span class="sd">        - ``b`` / ``B`` – 8-bit (signed/unsigned)</span>
+<span class="sd">        - ``h`` / ``H`` – 16-bit</span>
+<span class="sd">        - ``i`` / ``I`` – native-width ints</span>
+<span class="sd">        - ``l`` / ``L`` – 32-bit</span>
+<span class="sd">        - ``q`` / ``Q`` – 64-bit</span>
+<span class="sd">        - ``f`` / ``d`` – (double-precision) float</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            type_code: One-letter type code for the data items.</span>
+<span class="sd">            size: Maximum number of items the queue can hold.</span>
+<span class="sd">            thread_protect: If True, disable/enable IRQs around accesses.</span>
+<span class="sd">            overwrite: If True, overwrite oldest data when queue is full.</span>
+<span class="sd">            name: Optional name; defaults to ``QueueN`` where ``N`` is a</span>
+<span class="sd">                serial number.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># First call the parent class initializer</span>
+        <span class="nb">super</span> <span class="p">()</span><span class="o">.</span><span class="fm">__init__</span> <span class="p">(</span><span class="n">type_code</span><span class="p">,</span> <span class="n">thread_protect</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_size</span> <span class="o">=</span> <span class="n">size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_overwrite</span> <span class="o">=</span> <span class="n">overwrite</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="nb">str</span> <span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="k">if</span> <span class="n">name</span> <span class="o">!=</span> <span class="kc">None</span> \
+            <span class="k">else</span> <span class="s1">&#39;Queue&#39;</span> <span class="o">+</span> <span class="nb">str</span> <span class="p">(</span><span class="n">Queue</span><span class="o">.</span><span class="n">ser_num</span><span class="p">)</span>
+        <span class="n">Queue</span><span class="o">.</span><span class="n">ser_num</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="c1"># Allocate memory in which the queue&#39;s data will be stored</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_buffer</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">array</span> <span class="p">(</span><span class="n">type_code</span><span class="p">,</span> <span class="nb">range</span> <span class="p">(</span><span class="n">size</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">MemoryError</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_buffer</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">raise</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_buffer</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">raise</span>
+
+        <span class="c1"># Initialize pointers to be used for reading and writing data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clear</span> <span class="p">()</span>
+
+        <span class="c1"># Since we may have allocated a bunch of memory, call the garbage</span>
+        <span class="c1"># collector to neaten up what memory is left for future use</span>
+        <span class="n">gc</span><span class="o">.</span><span class="n">collect</span> <span class="p">()</span>
+
+
+    <span class="nd">@micropython</span><span class="o">.</span><span class="n">native</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">put</span> <span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="n">in_ISR</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Put an item into the queue.</span>
+
+<span class="sd">        If the queue is full and ``overwrite`` is False, this method blocks</span>
+<span class="sd">        (busy-waits) until there is room. In an ISR, it returns immediately</span>
+<span class="sd">        if the queue is full.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            item: Value to enqueue.</span>
+<span class="sd">            in_ISR: True if called from an interrupt context.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># If we&#39;re in an ISR and the queue is full and we&#39;re not allowed to</span>
+        <span class="c1"># overwrite data, we have to give up and exit</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">full</span> <span class="p">():</span>
+            <span class="k">if</span> <span class="n">in_ISR</span><span class="p">:</span>
+                <span class="k">return</span>
+
+            <span class="c1"># Wait (if needed) until there&#39;s room in the buffer for the data</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_overwrite</span><span class="p">:</span>
+                <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">full</span> <span class="p">():</span>
+                    <span class="k">pass</span>
+
+        <span class="c1"># Prevent data corruption by blocking interrupts during data transfer</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_thread_protect</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">in_ISR</span><span class="p">:</span>
+            <span class="n">_irq_state</span> <span class="o">=</span> <span class="n">pyb</span><span class="o">.</span><span class="n">disable_irq</span> <span class="p">()</span>
+
+        <span class="c1"># Write the data and advance the counts and pointers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_buffer</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_wr_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">item</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_wr_idx</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wr_idx</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_size</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_wr_idx</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_num_items</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_items</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_size</span><span class="p">:</span>        <span class="c1"># Can&#39;t be fuller than full</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_num_items</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_size</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_items</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_full</span><span class="p">:</span>     <span class="c1"># Record maximum fillage</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_max_full</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_items</span>
+
+        <span class="c1"># Re-enable interrupts</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_thread_protect</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">in_ISR</span><span class="p">:</span>
+            <span class="n">pyb</span><span class="o">.</span><span class="n">enable_irq</span> <span class="p">(</span><span class="n">_irq_state</span><span class="p">)</span>
+
+
+    <span class="nd">@micropython</span><span class="o">.</span><span class="n">native</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get</span> <span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_ISR</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Read and remove one item from the queue.</span>
+
+<span class="sd">        This method blocks (busy-waits) until an item is available.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            in_ISR: True if called from interrupt context.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The dequeued item.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Wait until there&#39;s something in the queue to be returned</span>
+        <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">empty</span> <span class="p">():</span>
+            <span class="k">pass</span>
+
+        <span class="c1"># Prevent data corruption by blocking interrupts during data transfer</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_thread_protect</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">in_ISR</span><span class="p">:</span>
+            <span class="n">irq_state</span> <span class="o">=</span> <span class="n">pyb</span><span class="o">.</span><span class="n">disable_irq</span> <span class="p">()</span>
+
+        <span class="c1"># Get the item to be returned from the queue</span>
+        <span class="n">to_return</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_buffer</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_rd_idx</span><span class="p">]</span>
+
+        <span class="c1"># Move the read pointer and adjust the number of items in the queue</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_rd_idx</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rd_idx</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_size</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_rd_idx</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_num_items</span> <span class="o">-=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_items</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_num_items</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># Re-enable interrupts</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_thread_protect</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">in_ISR</span><span class="p">:</span>
+            <span class="n">pyb</span><span class="o">.</span><span class="n">enable_irq</span> <span class="p">(</span><span class="n">irq_state</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="n">to_return</span><span class="p">)</span>
+
+
+    <span class="nd">@micropython</span><span class="o">.</span><span class="n">native</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">any</span> <span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return True if there is at least one item in the queue.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_num_items</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+
+
+    <span class="nd">@micropython</span><span class="o">.</span><span class="n">native</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">empty</span> <span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return True if the queue is empty.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_num_items</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">)</span>
+
+
+    <span class="nd">@micropython</span><span class="o">.</span><span class="n">native</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">full</span> <span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return True if the queue is full (no more room for new items).&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_num_items</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_size</span><span class="p">)</span>
+
+
+    <span class="nd">@micropython</span><span class="o">.</span><span class="n">native</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">num_in</span> <span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the current number of items in the queue.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_num_items</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Queue.clear">
+<a class="viewcode-back" href="../api.html#task_share.Queue.clear">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">clear</span> <span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove all contents from the queue and reset counters.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_rd_idx</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_wr_idx</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_num_items</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_max_full</span> <span class="o">=</span> <span class="mi">0</span></div>
+
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span> <span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a diagnostic string describing this queue.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="s1">&#39;</span><span class="si">{:&lt;12s}</span><span class="s1"> Queue&lt;</span><span class="si">{:s}</span><span class="s1">&gt; Max Full </span><span class="si">{:d}</span><span class="s1">/</span><span class="si">{:d}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">,</span>
+                <span class="n">type_code_strings</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_type_code</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_full</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_size</span><span class="p">))</span></div>
+
+
+
+<span class="c1"># ============================================================================</span>
+
+<div class="viewcode-block" id="Share">
+<a class="viewcode-back" href="../api.html#task_share.Share">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Share</span> <span class="p">(</span><span class="n">BaseShare</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Single-value shared data item used between tasks.</span>
+
+<span class="sd">    A :class:`Share` holds the latest value of a single variable of a given</span>
+<span class="sd">    type. With ``thread_protect`` enabled, reads and writes are protected</span>
+<span class="sd">    against corruption by interrupts or pre-emptive scheduling.</span>
+
+<span class="sd">    Example::</span>
+
+<span class="sd">        import task_share</span>
+
+<span class="sd">        my_share = task_share.Share(&#39;h&#39;, name=&#39;My Share&#39;)</span>
+<span class="sd">        my_share.put(value)</span>
+<span class="sd">        latest = my_share.get()</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1">## A counter used to give serial numbers to shares for diagnostic use.</span>
+    <span class="n">ser_num</span> <span class="o">=</span> <span class="mi">0</span>
+
+
+    <span class="c1">## Create a shared data item used to transfer data between tasks.</span>
+    <span class="c1"># </span>
+    <span class="c1">#  This method allocates memory in which the shared data will be buffered.</span>
+    <span class="c1"># </span>
+    <span class="c1">#  Each share can only carry data of one particular type which must be</span>
+    <span class="c1">#  chosen from the following list. The data type is specified by a </span>
+    <span class="c1">#  one-letter type code which is given as for the Python @c array.array</span>
+    <span class="c1">#  type, which can be any of the following:</span>
+    <span class="c1">#  |      |      |      |</span>
+    <span class="c1">#  |:-----|:-----|:-----|</span>
+    <span class="c1">#  | **b** (signed char) | **B** (unsigned char) | 8 bit integers |</span>
+    <span class="c1">#  | **h** (signed short) | **H** (unsigned short) | 16 bit integers |</span>
+    <span class="c1">#  | **i** (signed int) | **I** (unsigned int) | 32 bit integers (probably) |</span>
+    <span class="c1">#  | **l** (signed long) | **L** (unsigned long) | 32 bit integers |</span>
+    <span class="c1">#  | **q** (signed long long) | **Q** (unsigned long long) | 64 bit integers |</span>
+    <span class="c1">#  | **f** (float) | **d** (double-precision float) | |</span>
+    <span class="c1"># </span>
+    <span class="c1">#  @param type_code The type of data items which the share can hold</span>
+    <span class="c1">#  @param thread_protect True if mutual exclusion protection is used</span>
+    <span class="c1">#  @param name A short name for the share, default @c ShareN where @c N</span>
+    <span class="c1">#         is a serial number for the share</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span> <span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">type_code</span><span class="p">,</span> <span class="n">thread_protect</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># First call the parent class initializer</span>
+        <span class="nb">super</span> <span class="p">()</span><span class="o">.</span><span class="fm">__init__</span> <span class="p">(</span><span class="n">type_code</span><span class="p">,</span> <span class="n">thread_protect</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_buffer</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">array</span> <span class="p">(</span><span class="n">type_code</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="nb">str</span> <span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="k">if</span> <span class="n">name</span> <span class="o">!=</span> <span class="kc">None</span> \
+            <span class="k">else</span> <span class="s1">&#39;Share&#39;</span> <span class="o">+</span> <span class="nb">str</span> <span class="p">(</span><span class="n">Share</span><span class="o">.</span><span class="n">ser_num</span><span class="p">)</span>
+        <span class="n">Share</span><span class="o">.</span><span class="n">ser_num</span> <span class="o">+=</span> <span class="mi">1</span>
+
+
+    <span class="c1">## Write an item of data into the share.</span>
+    <span class="c1"># </span>
+    <span class="c1">#  This method puts data into the share; any old data is overwritten.</span>
+    <span class="c1">#  This code disables interrupts during the writing so as to prevent</span>
+    <span class="c1">#  data corrupting by an interrupt service routine which might access</span>
+    <span class="c1">#  the same data.</span>
+    <span class="c1">#  @param data The data to be put into this share</span>
+    <span class="c1">#  @param in_ISR Set this to True if calling from within an ISR</span>
+    <span class="nd">@micropython</span><span class="o">.</span><span class="n">native</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">put</span> <span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">in_ISR</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Write a new value into the share, overwriting any previous value.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data: New value to store.</span>
+<span class="sd">            in_ISR: True if called from interrupt context.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Disable interrupts before writing the data</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_thread_protect</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">in_ISR</span><span class="p">:</span>
+            <span class="n">irq_state</span> <span class="o">=</span> <span class="n">pyb</span><span class="o">.</span><span class="n">disable_irq</span> <span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_buffer</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span>
+
+        <span class="c1"># Re-enable interrupts</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_thread_protect</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">in_ISR</span><span class="p">:</span>
+            <span class="n">pyb</span><span class="o">.</span><span class="n">enable_irq</span> <span class="p">(</span><span class="n">irq_state</span><span class="p">)</span>
+
+
+    <span class="nd">@micropython</span><span class="o">.</span><span class="n">native</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get</span> <span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_ISR</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Read and return the current value of the share.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            in_ISR: True if called from interrupt context.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The value currently stored in the share.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Disable interrupts before reading the data</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_thread_protect</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">in_ISR</span><span class="p">:</span>
+            <span class="n">irq_state</span> <span class="o">=</span> <span class="n">pyb</span><span class="o">.</span><span class="n">disable_irq</span> <span class="p">()</span>
+
+        <span class="n">to_return</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_buffer</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># Re-enable interrupts</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_thread_protect</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">in_ISR</span><span class="p">:</span>
+            <span class="n">pyb</span><span class="o">.</span><span class="n">enable_irq</span> <span class="p">(</span><span class="n">irq_state</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="n">to_return</span><span class="p">)</span>
+
+
+    <span class="c1">## Puts diagnostic information about the share into a string.</span>
+    <span class="c1">#</span>
+    <span class="c1">#  Shares are pretty simple, so we just put the name and type. </span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span> <span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a simple representation of the share (current value).&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">str</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get</span> <span class="p">())</span>  <span class="c1"># return the current value of the share</span></div>
+
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Max Soury and Shafiq Amat.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
