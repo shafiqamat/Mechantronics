@@ -1,0 +1,642 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>task_user &mdash; Mechatronics final 1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=29a6c3e3"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Mechatronics final
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Mechatronics final</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Module code</a></li>
+      <li class="breadcrumb-item active">task_user</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for task_user</h1><div class="highlight"><pre>
+<span></span><span class="sd">&#39;&#39;&#39; This file demonstrates an example UI task using a custom class with a</span>
+<span class="sd">    run method implemented as a generator</span>
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyb</span><span class="w"> </span><span class="kn">import</span> <span class="n">USB_VCP</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">task_share</span><span class="w"> </span><span class="kn">import</span> <span class="n">Share</span><span class="p">,</span> <span class="n">Queue</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">cotask</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">micropython</span>
+
+<span class="n">S0_MM</span>   <span class="o">=</span> <span class="n">micropython</span><span class="o">.</span><span class="n">const</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="c1"># State 0 - main menu</span>
+<span class="n">S1_INP</span>  <span class="o">=</span> <span class="n">micropython</span><span class="o">.</span><span class="n">const</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="c1"># State 1 - main menu input </span>
+<span class="n">S2_HLP</span>  <span class="o">=</span> <span class="n">micropython</span><span class="o">.</span><span class="n">const</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="c1"># State 2 - help state</span>
+<span class="n">S3_KP</span>   <span class="o">=</span> <span class="n">micropython</span><span class="o">.</span><span class="n">const</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="c1"># State 3 - Kp selection</span>
+<span class="n">S4_KI</span>   <span class="o">=</span> <span class="n">micropython</span><span class="o">.</span><span class="n">const</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span> <span class="c1"># State 4 - Ki selection</span>
+<span class="n">S5_GO</span>   <span class="o">=</span> <span class="n">micropython</span><span class="o">.</span><span class="n">const</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span> <span class="c1"># State 5 - start data collection</span>
+<span class="n">S6_WAIT</span> <span class="o">=</span> <span class="n">micropython</span><span class="o">.</span><span class="n">const</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span> <span class="c1"># State 6 - wait for data to be done</span>
+<span class="n">S7_DATA</span> <span class="o">=</span> <span class="n">micropython</span><span class="o">.</span><span class="n">const</span><span class="p">(</span><span class="mi">7</span><span class="p">)</span> <span class="c1"># State 7 - put data into csv</span>
+<span class="n">S8_STP</span>  <span class="o">=</span> <span class="n">micropython</span><span class="o">.</span><span class="n">const</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span> <span class="c1"># State 8 - setpoint selection</span>
+<span class="n">S9_LINE</span> <span class="o">=</span> <span class="n">micropython</span><span class="o">.</span><span class="n">const</span><span class="p">(</span><span class="mi">9</span><span class="p">)</span> <span class="c1"># State 9 - line following menu</span>
+<span class="n">S10_LIN</span> <span class="o">=</span> <span class="n">micropython</span><span class="o">.</span><span class="n">const</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span><span class="c1"># State 10- line follow input</span>
+<span class="n">S11_SETS</span><span class="o">=</span> <span class="n">micropython</span><span class="o">.</span><span class="n">const</span><span class="p">(</span><span class="mi">11</span><span class="p">)</span><span class="c1"># State 11- set standard follow speed</span>
+<span class="n">S12_HOLD</span><span class="o">=</span> <span class="n">micropython</span><span class="o">.</span><span class="n">const</span><span class="p">(</span><span class="mi">12</span><span class="p">)</span><span class="c1"># State 12- here while following line</span>
+<span class="n">S13_DATL</span><span class="o">=</span> <span class="n">micropython</span><span class="o">.</span><span class="n">const</span><span class="p">(</span><span class="mi">13</span><span class="p">)</span><span class="c1"># State 13- print the data from line follow</span>
+<span class="n">S14_track</span><span class="o">=</span> <span class="n">micropython</span><span class="o">.</span><span class="n">const</span><span class="p">(</span><span class="mi">14</span><span class="p">)</span><span class="c1"># State 14- track the line</span>
+
+
+
+<span class="n">UI_prompt</span> <span class="o">=</span> <span class="s2">&quot;&gt;: &quot;</span>
+
+<div class="viewcode-block" id="task_user">
+<a class="viewcode-back" href="../api.html#task_user.task_user">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">task_user</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    A class that represents a UI task. The task is responsible for reading user</span>
+<span class="sd">    input over a serial port, parsing the input for single-character commands,</span>
+<span class="sd">    and then manipulating shared variables to communicate with other tasks based</span>
+<span class="sd">    on the user commands.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">setpoint</span><span class="p">,</span> <span class="n">gainP</span><span class="p">,</span> <span class="n">gainI</span><span class="p">,</span> <span class="n">speed</span><span class="p">,</span> <span class="n">line</span><span class="p">,</span> <span class="n">leftMotorGo</span><span class="p">,</span> <span class="n">rightMotorGo</span><span class="p">,</span>
+                 <span class="n">leftDataValues</span><span class="p">,</span> <span class="n">leftTimeValues</span><span class="p">,</span> <span class="n">rightDataValues</span><span class="p">,</span> <span class="n">rightTimeValues</span><span class="p">,</span>
+                 <span class="n">centroidValues</span><span class="p">,</span> <span class="n">centroidTime</span><span class="p">,</span> <span class="n">estx</span><span class="p">,</span> <span class="n">esty</span><span class="p">,</span>
+                 <span class="n">startTime</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Initializes the task_user class. Task user is responsible for reading user input over a serial port, parsing the input for single-character commands,</span>
+<span class="sd">        and then manipulating shared variables to communicate with other tasks based on the user commands.</span>
+<span class="sd">        :param: setpoint (The setpoint for the task user)</span>
+<span class="sd">        :param: gainP (The proportional gain for the task user)</span>
+<span class="sd">        :param: gainI (The integral gain for the task user)</span>
+<span class="sd">        :param: speed (The speed for the task user)</span>
+<span class="sd">        :param: line (The line flag for the task user)</span>
+<span class="sd">        :param: leftMotorGo (The left motor go flag for the task user)</span>
+<span class="sd">        :param: rightMotorGo (The right motor go flag for the task user)</span>
+<span class="sd">        :param: leftDataValues (The left data values for the task user)</span>
+<span class="sd">        :param: leftTimeValues (The left time values for the task user)</span>
+<span class="sd">        :param: rightDataValues (The right data values for the task user)</span>
+<span class="sd">        :param: rightTimeValues (The right time values for the task user)</span>
+<span class="sd">        :param: centroidValues (The centroid values for the task user)</span>
+<span class="sd">        :param: centroidTime (The centroid time for the task user)</span>
+<span class="sd">        :param: estx (The estimated x position for the task user)</span>
+<span class="sd">        :param: esty (The estimated y position for the task user)</span>
+<span class="sd">        :param: startTime (The start time for the task user)</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S0_MM</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_leftMotorGo</span> <span class="o">=</span> <span class="n">leftMotorGo</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_rightMotorGo</span> <span class="o">=</span> <span class="n">rightMotorGo</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span> <span class="o">=</span> <span class="n">USB_VCP</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_setpoint</span> <span class="o">=</span> <span class="n">setpoint</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_gainP</span> <span class="o">=</span> <span class="n">gainP</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_gainI</span> <span class="o">=</span> <span class="n">gainI</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_leftDataValues</span> <span class="o">=</span> <span class="n">leftDataValues</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_leftTimeValues</span> <span class="o">=</span> <span class="n">leftTimeValues</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_rightDataValues</span> <span class="o">=</span> <span class="n">rightDataValues</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_rightTimeValues</span> <span class="o">=</span> <span class="n">rightTimeValues</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_centroidValues</span> <span class="o">=</span> <span class="n">centroidValues</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_centroidTime</span> <span class="o">=</span> <span class="n">centroidTime</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_startTime</span> <span class="o">=</span> <span class="n">startTime</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_speed</span> <span class="o">=</span> <span class="n">speed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_line</span> <span class="o">=</span> <span class="n">line</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">estx</span> <span class="o">=</span> <span class="n">estx</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">esty</span> <span class="o">=</span> <span class="n">esty</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;User Task object instantiated&quot;</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">_collectflag</span><span class="p">:</span> <span class="nb">int</span>    <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_time</span><span class="p">:</span> <span class="nb">float</span>         <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">localtime</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_time_format</span><span class="p">:</span> <span class="nb">float</span>  <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span><span class="p">:</span> <span class="nb">str</span>       <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_line_follow_filename</span><span class="p">:</span> <span class="nb">str</span><span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        
+<div class="viewcode-block" id="task_user.run">
+<a class="viewcode-back" href="../api.html#task_user.task_user.run">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        implements the ui as a finite state machine with states for main menu, input, help menu, gain selection, setpoint selection, start the test, line following menu, task list table, and track the line.</span>
+<span class="sd">        :param: None</span>
+<span class="sd">        :returns: None</span>
+<span class="sd">        :notes: The task_user class is a Finite State Machine with states for main menu, input, help menu, gain selection, setpoint selection, start the test, line following menu, task list table, and track the line.</span>
+<span class="sd">        The task_user class is responsible for reading user input over a serial port, parsing the input for single-character commands,</span>
+<span class="sd">        and then manipulating shared variables to communicate with other tasks based on the user commands.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+<span class="c1">#==============================================================================            </span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">==</span> <span class="n">S0_MM</span><span class="p">:</span> <span class="c1"># main menu</span>
+<span class="w">                </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">                State 0: Main Menu</span>
+<span class="sd">                The robot is in the main menu, this task just displays the main menu before moving to the input state.</span>
+<span class="sd">                &#39;&#39;&#39;</span>
+                
+                <span class="c1">#self._setpoint.put(2000)</span>
+                
+    
+                <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;+--------------------+</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;|Testing Main Menu</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;+---+----------------+</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;| h | help menu</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;| k | gain selection, Kp:</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_gainP</span><span class="si">}</span><span class="s2">, Ki</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_gainI</span><span class="si">}</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;| s | setpoint selection, current:</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_setpoint</span><span class="si">}</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;| g | start the test</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;| l | line following menu</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;| t | task list table</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;| ft | track the line</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;+---+----------------+</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">UI_prompt</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S1_INP</span>
+<span class="c1">#==============================================================================                </span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">==</span> <span class="n">S1_INP</span><span class="p">:</span> <span class="c1"># Wait for UI commands</span>
+<span class="w">                </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">                State 1: Input</span>
+<span class="sd">                The robot is in the input state and waiting for user input.</span>
+<span class="sd">                The robot will display the input state and wait for user input.</span>
+<span class="sd">                The robot will then transition to the help menu if the user inputs &#39;h&#39;.</span>
+<span class="sd">                The robot will then transition to the gain selection state if the user inputs &#39;k&#39;.</span>
+<span class="sd">                The robot will then transition to the setpoint selection state if the user inputs &#39;s&#39;.</span>
+<span class="sd">                The robot will then transition to the start the test state if the user inputs &#39;g&#39;.</span>
+<span class="sd">                The robot will then transition to the line following menu state if the user inputs &#39;l&#39;.</span>
+<span class="sd">                The robot will then transition to the task list table state if the user inputs &#39;t&#39;.</span>
+<span class="sd">                The robot will then transition to the track the line state if the user inputs &#39;ft&#39;.</span>
+<span class="sd">                &#39;&#39;&#39;</span>
+                <span class="c1"># Wait for at least one character in serial buffer</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+                    <span class="c1"># Read the character and decode it into a string</span>
+                    <span class="n">inChar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+                    
+                    <span class="c1">#checks if the inputed character is one in menu</span>
+                    
+                    <span class="k">if</span> <span class="n">inChar</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;h&quot;</span><span class="p">,</span> <span class="s2">&quot;H&quot;</span><span class="p">}:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;help menu&quot;</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S2_HLP</span>
+                        
+                    <span class="k">elif</span> <span class="n">inChar</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="s2">&quot;K&quot;</span><span class="p">}:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;select Kp:</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">UI_prompt</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S3_KP</span>
+                        
+                    <span class="k">elif</span> <span class="n">inChar</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;s&quot;</span><span class="p">,</span><span class="s2">&quot;S&quot;</span><span class="p">}:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;select setpoint</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">UI_prompt</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S8_STP</span>
+                        
+                    <span class="k">elif</span> <span class="n">inChar</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;g&#39;</span><span class="p">,</span><span class="s1">&#39;G&#39;</span><span class="p">}:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Waiting for go command: &#39;l&#39; for left, &#39;r&#39; for right</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">UI_prompt</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S5_GO</span>
+                        
+                    <span class="k">elif</span> <span class="n">inChar</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;l&#39;</span><span class="p">,</span><span class="s1">&#39;L&#39;</span><span class="p">}:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_line</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S9_LINE</span>
+                        
+                    <span class="k">elif</span> <span class="n">inChar</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;t&#39;</span><span class="p">,</span><span class="s1">&#39;T&#39;</span><span class="p">}:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">cotask</span><span class="o">.</span><span class="n">task_list</span><span class="o">.</span><span class="fm">__repr__</span><span class="p">())</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S0_MM</span>
+                    <span class="k">elif</span> <span class="n">inChar</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;ft&#39;</span><span class="p">,</span><span class="s1">&#39;FT&#39;</span><span class="p">}:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S14_track</span>
+<span class="c1">#============================================================================== </span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">==</span> <span class="n">S2_HLP</span><span class="p">:</span>
+<span class="w">                </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">                State 2: Help Menu</span>
+<span class="sd">                The robot is in the help menu and waiting for user input.</span>
+<span class="sd">                The robot will display the help menu and wait for user input.</span>
+<span class="sd">                The robot will then transition to the main menu if the user inputs a command.</span>
+<span class="sd">                &#39;&#39;&#39;</span>
+                <span class="c1"># waits for user to input a character to exit help menu</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S0_MM</span>
+<span class="c1">#============================================================================== </span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">==</span> <span class="n">S3_KP</span><span class="p">:</span>
+<span class="w">                </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">                State 3: Gain Selection</span>
+<span class="sd">                The robot is in the gain selection state and waiting for user input.</span>
+<span class="sd">                The robot will display the gain selection state and wait for user input.</span>
+<span class="sd">                The robot will then transition to the Ki selection state if the user inputs a number.</span>
+<span class="sd">                &#39;&#39;&#39;</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+                    <span class="c1">#multicharacter input</span>
+                    <span class="n">char</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+                    <span class="c1">#check if digit</span>
+                    <span class="k">if</span> <span class="n">char</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;1&quot;</span><span class="p">,</span><span class="s1">&#39;2&#39;</span><span class="p">,</span><span class="s1">&#39;3&#39;</span><span class="p">,</span><span class="s1">&#39;4&#39;</span><span class="p">,</span><span class="s1">&#39;5&#39;</span><span class="p">,</span><span class="s1">&#39;6&#39;</span><span class="p">,</span><span class="s1">&#39;7&#39;</span><span class="p">,</span><span class="s1">&#39;8&#39;</span><span class="p">,</span><span class="s1">&#39;9&#39;</span><span class="p">,</span><span class="s1">&#39;0&#39;</span><span class="p">}:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">char</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="o">+=</span> <span class="n">char</span>
+                    <span class="c1">#check if decimal </span>
+                    <span class="k">elif</span> <span class="n">char</span> <span class="o">==</span> <span class="s1">&#39;.&#39;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="s1">&#39;.&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">char</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="o">+=</span> <span class="n">char</span>
+                    
+                    <span class="c1">#check for backspace/rubout</span>
+                    <span class="k">elif</span> <span class="n">char</span> <span class="o">==</span> <span class="s1">&#39;</span><span class="se">\x7f</span><span class="s1">&#39;</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">char</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                    
+                    <span class="c1">#when enter key</span>
+                    <span class="k">elif</span> <span class="n">char</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;</span><span class="se">\r</span><span class="s1">&#39;</span><span class="p">,</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">}:</span>
+                        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;value unchanged</span><span class="se">\r\n</span><span class="s1">&#39;</span><span class="p">)</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\r\n</span><span class="s2">select Ki:</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S4_KI</span>
+                        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;-&#39;</span><span class="p">,</span><span class="s1">&#39;.&#39;</span><span class="p">}:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_gainP</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">))</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\r\n</span><span class="s2">select Ki:</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">UI_prompt</span><span class="p">)</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S4_KI</span>
+<span class="c1">#============================================================================== </span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">==</span> <span class="n">S4_KI</span><span class="p">:</span>
+<span class="w">                </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">                State 4: Ki Selection</span>
+<span class="sd">                The robot is in the Ki selection state and waiting for user input.</span>
+<span class="sd">                The robot will display the Ki selection state and wait for user input.</span>
+<span class="sd">                The robot will then transition to the main menu if the user inputs a command.</span>
+<span class="sd">                &#39;&#39;&#39;</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+                    <span class="c1">#multicharacter input</span>
+                    <span class="n">char</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+                    <span class="c1">#check if digit</span>
+                    <span class="k">if</span> <span class="n">char</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;1&quot;</span><span class="p">,</span><span class="s1">&#39;2&#39;</span><span class="p">,</span><span class="s1">&#39;3&#39;</span><span class="p">,</span><span class="s1">&#39;4&#39;</span><span class="p">,</span><span class="s1">&#39;5&#39;</span><span class="p">,</span><span class="s1">&#39;6&#39;</span><span class="p">,</span><span class="s1">&#39;7&#39;</span><span class="p">,</span><span class="s1">&#39;8&#39;</span><span class="p">,</span><span class="s1">&#39;9&#39;</span><span class="p">,</span><span class="s1">&#39;0&#39;</span><span class="p">}:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">char</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="o">+=</span> <span class="n">char</span>
+                    <span class="c1">#check if decimal </span>
+                    <span class="k">elif</span> <span class="n">char</span> <span class="o">==</span> <span class="s1">&#39;.&#39;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="s1">&#39;.&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">char</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="o">+=</span> <span class="n">char</span>
+                    
+                    <span class="c1">#check for backspace/rubout</span>
+                    <span class="k">elif</span> <span class="n">char</span> <span class="o">==</span> <span class="s1">&#39;</span><span class="se">\x7f</span><span class="s1">&#39;</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">char</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                    
+                    
+                    <span class="c1">#when enter key</span>
+                    <span class="k">elif</span> <span class="n">char</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;</span><span class="se">\r</span><span class="s1">&#39;</span><span class="p">,</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">}:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\r\n</span><span class="s1">&#39;</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;value unchanged</span><span class="se">\r\n</span><span class="s1">&#39;</span><span class="p">)</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S0_MM</span>
+                        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;-&#39;</span><span class="p">,</span><span class="s1">&#39;.&#39;</span><span class="p">}:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_gainI</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">))</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S0_MM</span>
+<span class="c1">#============================================================================== </span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">==</span> <span class="n">S8_STP</span><span class="p">:</span>
+<span class="w">                </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">                State 8: Setpoint Selection</span>
+<span class="sd">                The robot is in the setpoint selection state and waiting for user input.</span>
+<span class="sd">                The robot will display the setpoint selection state and wait for user input.</span>
+<span class="sd">                The robot will then transition to the main menu if the user inputs a command.</span>
+<span class="sd">                &#39;&#39;&#39;</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+                    <span class="c1">#multicharacter input</span>
+                    <span class="n">char</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+                    <span class="c1">#check if digit</span>
+                    <span class="k">if</span> <span class="n">char</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;1&quot;</span><span class="p">,</span><span class="s1">&#39;2&#39;</span><span class="p">,</span><span class="s1">&#39;3&#39;</span><span class="p">,</span><span class="s1">&#39;4&#39;</span><span class="p">,</span><span class="s1">&#39;5&#39;</span><span class="p">,</span><span class="s1">&#39;6&#39;</span><span class="p">,</span><span class="s1">&#39;7&#39;</span><span class="p">,</span><span class="s1">&#39;8&#39;</span><span class="p">,</span><span class="s1">&#39;9&#39;</span><span class="p">,</span><span class="s1">&#39;0&#39;</span><span class="p">}:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">char</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="o">+=</span> <span class="n">char</span>
+                    <span class="c1">#check if decimal </span>
+                    <span class="k">elif</span> <span class="n">char</span> <span class="o">==</span> <span class="s1">&#39;.&#39;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="s1">&#39;.&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">char</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="o">+=</span> <span class="n">char</span>
+                    <span class="c1">#check for minus</span>
+                    <span class="k">elif</span> <span class="n">char</span> <span class="o">==</span> <span class="s2">&quot;-&quot;</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">char</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="o">+=</span> <span class="n">char</span>
+                        
+                    <span class="c1">#check for backspace/rubout</span>
+                    <span class="k">elif</span> <span class="n">char</span> <span class="o">==</span> <span class="s1">&#39;</span><span class="se">\x7f</span><span class="s1">&#39;</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">char</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                    
+                    <span class="c1">#when enter key</span>
+                    <span class="k">elif</span> <span class="n">char</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;</span><span class="se">\r</span><span class="s1">&#39;</span><span class="p">,</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">}:</span>
+                        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;value unchanged</span><span class="se">\r\n</span><span class="s1">&#39;</span><span class="p">)</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S0_MM</span>
+                        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;-&#39;</span><span class="p">,</span><span class="s1">&#39;.&#39;</span><span class="p">}:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_setpoint</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">))</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S0_MM</span>
+<span class="c1">#==============================================================================</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">==</span> <span class="n">S5_GO</span><span class="p">:</span>
+<span class="w">                </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">                State 5: Start the Test</span>
+<span class="sd">                The robot is in the start the test statefor set point control and waiting for user input.</span>
+<span class="sd">                The robot will display the start the test state and wait for user input.</span>
+<span class="sd">                The robot will then transition to the wait state until set point control is complete.</span>
+<span class="sd">                &#39;&#39;&#39;</span>
+                <span class="c1"># Wait for at least one character in serial buffer</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+                    <span class="c1"># Read the character and decode it into a string</span>
+                    <span class="n">inChar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+                    <span class="c1"># If the character is an upper or lower case &quot;l&quot;, start data</span>
+                    <span class="c1"># collection on the left motor and if it is an &quot;r&quot;, start</span>
+                    <span class="c1"># data collection on the right motor</span>
+                    <span class="k">if</span> <span class="n">inChar</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;l&quot;</span><span class="p">,</span> <span class="s2">&quot;L&quot;</span><span class="p">}:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">inChar</span><span class="si">}</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_startTime</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_startTime</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">ticks_us</span><span class="p">())</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_leftMotorGo</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Starting left motor loop...</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Starting data collection...</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Please wait... </span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S6_WAIT</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_collectflag</span> <span class="o">=</span> <span class="mi">1</span>
+                    <span class="k">elif</span> <span class="n">inChar</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="s2">&quot;R&quot;</span><span class="p">}:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">inChar</span><span class="si">}</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_startTime</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_startTime</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">ticks_us</span><span class="p">())</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_rightMotorGo</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Starting right motor loop...</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Starting data collection...</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Please wait... </span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_collectflag</span> <span class="o">=</span> <span class="mi">1</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S6_WAIT</span>
+<span class="c1">#============================================================================== </span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">==</span> <span class="n">S6_WAIT</span><span class="p">:</span>
+<span class="w">                </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">                State 6: Wait</span>
+<span class="sd">                The robot is in the wait state and waiting for the set point control to be complete. once complete, the robot will transition to the data collection state.</span>
+<span class="sd">                &#39;&#39;&#39;</span>
+                <span class="c1"># While the data is collecting (in the motor task) block out the</span>
+                <span class="c1"># UI and discard any character entry so that commands don&#39;t</span>
+                <span class="c1"># queue up in the serial buffer</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">any</span><span class="p">():</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                
+                <span class="c1"># When both go flags are clear, the data collection must have</span>
+                <span class="c1"># ended and it is time to print the collected data.</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_leftMotorGo</span><span class="o">.</span><span class="n">get</span><span class="p">()</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rightMotorGo</span><span class="o">.</span><span class="n">get</span><span class="p">():</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Data collection complete...</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Printing data...</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;--------------------</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Time, Position</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S7_DATA</span>
+<span class="c1">#==============================================================================            </span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">==</span> <span class="n">S7_DATA</span><span class="p">:</span>
+<span class="w">                </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">                State 7: Data Collection</span>
+<span class="sd">                The robot is in the data collection state and waiting for the data collection to be complete.</span>
+<span class="sd">                The robot will display the data collection state and wait for the data collection to be complete.</span>
+<span class="sd">                The robot will then print the data to the serial port and the file.</span>
+<span class="sd">                The robot will then transition to the main menu once complete.</span>
+<span class="sd">                &#39;&#39;&#39;</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_collectflag</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_time_format</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{:04d}</span><span class="s2">-</span><span class="si">{:02d}</span><span class="s2">-</span><span class="si">{:02d}</span><span class="s2">_</span><span class="si">{:02d}</span><span class="s2">-</span><span class="si">{:02d}</span><span class="s2">-</span><span class="si">{:02d}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_time</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_time</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_time</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_time</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_time</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_time</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span> <span class="o">=</span> <span class="s2">&quot;/flash/log_</span><span class="si">{}</span><span class="s2">.csv&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_time_format</span><span class="p">)</span>
+                    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_filename</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+                        <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Time_us, Position, Motor</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Logging to file: </span><span class="si">{}</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_filename</span><span class="p">))</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_collectflag</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="c1"># Drain left then right queues; data is position, not effort</span>
+                <span class="n">has_left</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_leftDataValues</span><span class="o">.</span><span class="n">any</span><span class="p">()</span>
+                <span class="n">has_right</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rightDataValues</span><span class="o">.</span><span class="n">any</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">has_left</span><span class="p">:</span>
+                    <span class="n">t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_leftTimeValues</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+                    <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_leftDataValues</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">t</span><span class="o">/</span><span class="mi">1000</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">,</span><span class="si">{</span><span class="n">d</span><span class="si">}</span><span class="s2">,</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_filename</span><span class="p">),</span> <span class="s1">&#39;a&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+                        <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">t</span><span class="o">/</span><span class="mi">1000</span><span class="si">}</span><span class="s2">,</span><span class="si">{</span><span class="n">d</span><span class="si">}</span><span class="s2">,</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">has_right</span><span class="p">:</span>
+                    <span class="n">t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rightTimeValues</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+                    <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rightDataValues</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">t</span><span class="o">/</span><span class="mi">1000</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">,</span><span class="si">{</span><span class="n">d</span><span class="si">}</span><span class="s2">,</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_filename</span><span class="p">),</span> <span class="s1">&#39;a&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+                        <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">t</span><span class="o">/</span><span class="mi">1000</span><span class="si">}</span><span class="s2">,</span><span class="si">{</span><span class="n">d</span><span class="si">}</span><span class="s2">,</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;--------------------</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Waiting for go command: &#39;l&#39; for left, &#39;r&#39; for right</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">UI_prompt</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S0_MM</span>
+<span class="c1">#==============================================================================</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">==</span> <span class="n">S9_LINE</span><span class="p">:</span>
+<span class="w">                </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">                State 9: Line Following Menu</span>
+<span class="sd">                The robot is in the line following menu and waiting for user input.</span>
+<span class="sd">                The robot will display the line following menu and then transition to the line follow input state.</span>
+<span class="sd">                &#39;&#39;&#39;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;+--------------------+</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;|Line Following menu</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;+---+----------------+</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;| s | speed selection: current </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_speed</span><span class="si">}</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;| r | return to main menu</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;| g | start the test</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;+---+----------------+</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                
+                <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">UI_prompt</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S10_LIN</span>
+<span class="c1">#==============================================================================</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">==</span> <span class="n">S10_LIN</span><span class="p">:</span>
+<span class="w">                </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">                State 10: Line Follow Input</span>
+<span class="sd">                The robot is in the line follow input state and waiting for user input.</span>
+<span class="sd">                The robot will display the line follow input state and wait for user input.</span>
+<span class="sd">                The robot will then transition to the speed selection state if the user inputs &#39;s&#39;.</span>
+<span class="sd">                The robot will then transition to the return to main menu state if the user inputs &#39;r&#39;.</span>
+<span class="sd">                The robot will then transition to the start the test state if the user inputs &#39;g&#39;.</span>
+<span class="sd">                &#39;&#39;&#39;</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+                    <span class="n">inChar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+                    
+                    <span class="k">if</span> <span class="n">inChar</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;s&#39;</span><span class="p">,</span><span class="s1">&#39;S&#39;</span><span class="p">}:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;select line follow steady speed</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">UI_prompt</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S11_SETS</span>
+                        
+                    <span class="k">elif</span> <span class="n">inChar</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;r&#39;</span><span class="p">,</span><span class="s1">&#39;R&#39;</span><span class="p">}:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_line</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S0_MM</span>
+                        
+                    <span class="k">elif</span> <span class="n">inChar</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;g&#39;</span><span class="p">,</span><span class="s1">&#39;G&#39;</span><span class="p">}:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;Press any to stop</span><span class="se">\r\n</span><span class="s1">&#39;</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_startTime</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_startTime</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">ticks_us</span><span class="p">())</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_leftMotorGo</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_rightMotorGo</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S12_HOLD</span>
+<span class="c1">#==============================================================================</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">==</span> <span class="n">S11_SETS</span><span class="p">:</span>
+<span class="w">                </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">                State 11: Set Speed</span>
+<span class="sd">                The robot is in the set speed state and waiting for user input.</span>
+<span class="sd">                The robot will display the set speed state and then transition back to the line following menu.</span>
+<span class="sd">                &#39;&#39;&#39;</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+                    <span class="c1">#multicharacter input</span>
+                    <span class="n">char</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+                    <span class="c1">#check if digit</span>
+                    <span class="k">if</span> <span class="n">char</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;1&quot;</span><span class="p">,</span><span class="s1">&#39;2&#39;</span><span class="p">,</span><span class="s1">&#39;3&#39;</span><span class="p">,</span><span class="s1">&#39;4&#39;</span><span class="p">,</span><span class="s1">&#39;5&#39;</span><span class="p">,</span><span class="s1">&#39;6&#39;</span><span class="p">,</span><span class="s1">&#39;7&#39;</span><span class="p">,</span><span class="s1">&#39;8&#39;</span><span class="p">,</span><span class="s1">&#39;9&#39;</span><span class="p">,</span><span class="s1">&#39;0&#39;</span><span class="p">}:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">char</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="o">+=</span> <span class="n">char</span>
+                    
+                    <span class="c1">#check for backspace/rubout</span>
+                    <span class="k">elif</span> <span class="n">char</span> <span class="o">==</span> <span class="s1">&#39;</span><span class="se">\x7f</span><span class="s1">&#39;</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">char</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                    
+                    <span class="c1">#when enter key</span>
+                    <span class="k">elif</span> <span class="n">char</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;</span><span class="se">\r</span><span class="s1">&#39;</span><span class="p">,</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">}:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\r\n</span><span class="s1">&#39;</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;value unchanged</span><span class="se">\r\n</span><span class="s1">&#39;</span><span class="p">)</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S9_LINE</span>
+                        <span class="k">elif</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">100.0</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;no value above 100 allowed</span><span class="se">\r\n</span><span class="s1">&#39;</span><span class="p">)</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S9_LINE</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_speed</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">))</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S9_LINE</span>
+<span class="c1">#==============================================================================</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">==</span> <span class="n">S12_HOLD</span><span class="p">:</span>
+<span class="w">                </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">                State 12: Hold</span>
+<span class="sd">                The robot is in the hold state and waiting for the user to press any button to stop the line following.</span>
+<span class="sd">                The robot will then transition to the data collection state if the line following is complete and the track flag is false then resturn to the main menu.</span>
+<span class="sd">                &#39;&#39;&#39;</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_rightMotorGo</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_leftMotorGo</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">track_flag</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_collectflag</span> <span class="o">=</span> <span class="mi">1</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Starting line follow data collection...</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S13_DATL</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">track_flag</span> <span class="o">=</span> <span class="kc">False</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S0_MM</span>
+<span class="c1">#==============================================================================</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">==</span> <span class="n">S13_DATL</span><span class="p">:</span>
+<span class="w">                </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">                State 13: Data Collection</span>
+<span class="sd">                The robot is in the data collection state and waiting for the data collection to be complete.</span>
+<span class="sd">                The robot will then print the data to the serial port and the file.</span>
+<span class="sd">                The robot will then transition to the main menu once complete.</span>
+<span class="sd">                &#39;&#39;&#39;</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_collectflag</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_time_format</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{:04d}</span><span class="s2">-</span><span class="si">{:02d}</span><span class="s2">-</span><span class="si">{:02d}</span><span class="s2">_</span><span class="si">{:02d}</span><span class="s2">-</span><span class="si">{:02d}</span><span class="s2">-</span><span class="si">{:02d}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_time</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_time</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_time</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_time</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_time</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_time</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_line_follow_filename</span> <span class="o">=</span> <span class="s2">&quot;/flash/estimated_pos_</span><span class="si">{}</span><span class="s2">.csv&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_time_format</span><span class="p">)</span>
+                    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_line_follow_filename</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+                        <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Time_us, Centroid</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Logging to file: </span><span class="si">{}</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_line_follow_filename</span><span class="p">))</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_collectflag</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="c1"># Drain left then right queues; data is position, not effort</span>
+                <span class="n">has_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">esty</span><span class="o">.</span><span class="n">any</span><span class="p">()</span>
+                <span class="n">has_t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">estx</span><span class="o">.</span><span class="n">any</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">has_val</span> <span class="ow">and</span> <span class="n">has_t</span><span class="p">:</span>
+                    <span class="n">ct</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">estx</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+                    <span class="n">cv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">esty</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">ct</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">,</span><span class="si">{</span><span class="n">cv</span><span class="si">}</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_line_follow_filename</span><span class="p">),</span> <span class="s1">&#39;a&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+                        <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">ct</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">,</span><span class="si">{</span><span class="n">cv</span><span class="si">}</span><span class="s2">,</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_line_follow_filename</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S9_LINE</span>
+<span class="c1">#==============================================================================</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">==</span> <span class="n">S14_track</span><span class="p">:</span>
+<span class="w">                </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">                State 14: Track the Line</span>
+<span class="sd">                The robot is in the track the line state and waiting for the user to press any button to start the line following.</span>
+<span class="sd">                The robot will then transition to the hold state if the user presses any button.</span>
+<span class="sd">                &#39;&#39;&#39;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;Press any to stop</span><span class="se">\r\n</span><span class="s1">&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_startTime</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_startTime</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">ticks_us</span><span class="p">())</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_leftMotorGo</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_rightMotorGo</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+                <span class="n">track_flag</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S12_HOLD</span>
+                
+<span class="c1">#==============================================================================</span>
+            <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Max Soury and Shafiq Amat.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
