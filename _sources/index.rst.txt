@@ -6,16 +6,19 @@
 Mechatronics final documentation
 ================================
 
-Add your content using ``reStructuredText`` syntax. See the
-`reStructuredText <https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_
-documentation for details.
+This site documents our Mechatronics final project: a MicroPython-based
+line-following robot built around an STM32 Nucleo board, motor encoders,
+an IMU, and an IR sensor array.
+
+Use the sections below to jump into the project overview, design notes,
+results, and generated API reference.
 
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
-   overview        ← overview.rst (your intro/report)
-   design          ← design.rst (mechanical/electrical design)
-   results         ← results.rst (plots, data, analysis)
-   api             ← api.rst (auto-generated code docs)
+   overview
+   design
+   results
+   api

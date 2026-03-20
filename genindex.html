@@ -39,8 +39,14 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <!-- Local TOC -->
-              <div class="local-toc"></div>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Project Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="design.html">Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="results.html">Results</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
+</ul>
+
         </div>
       </div>
     </nav>
@@ -85,8 +91,10 @@
  | <a href="#R"><strong>R</strong></a>
  | <a href="#S"><strong>S</strong></a>
  | <a href="#T"><strong>T</strong></a>
+ | <a href="#U"><strong>U</strong></a>
  | <a href="#W"><strong>W</strong></a>
  | <a href="#Y"><strong>Y</strong></a>
+ | <a href="#Z"><strong>Z</strong></a>
  
 </div>
 <h2 id="A">A</h2>
@@ -145,9 +153,18 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#task_share.Queue.empty">empty() (task_share.Queue method)</a>
 </li>
+      <li><a href="api.html#motor.Motor.enable">enable() (motor.Motor method)</a>
+</li>
+      <li>
+    encoder
+
+      <ul>
+        <li><a href="api.html#module-encoder">module</a>
+</li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#motor.Motor.enable">enable() (motor.Motor method)</a>
+      <li><a href="api.html#encoder.Encoder">Encoder (class in encoder)</a>
 </li>
       <li><a href="api.html#IMU_driver.BNO055.euler">euler() (IMU_driver.BNO055 method)</a>
 </li>
@@ -177,17 +194,23 @@
 </li>
       <li><a href="api.html#IMU_driver.BNO055.get_ang_velocity">get_ang_velocity() (IMU_driver.BNO055 method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#IMU_driver.BNO055.get_linear_accel_mps2">get_linear_accel_mps2() (IMU_driver.BNO055 method)</a>
 </li>
       <li><a href="api.html#IMU_driver.BNO055.get_linear_accel_raw">get_linear_accel_raw() (IMU_driver.BNO055 method)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#IMU_driver.BNO055.get_mode">get_mode() (IMU_driver.BNO055 method)</a>
 </li>
       <li><a href="api.html#linesen.sensor.get_pos">get_pos() (linesen.sensor method)</a>
 </li>
+      <li><a href="api.html#encoder.Encoder.get_position">get_position() (encoder.Encoder method)</a>
+</li>
+      <li><a href="api.html#encoder.Encoder.get_rpm">get_rpm() (encoder.Encoder method)</a>
+</li>
       <li><a href="api.html#cotask.Task.get_trace">get_trace() (cotask.Task method)</a>
+</li>
+      <li><a href="api.html#encoder.Encoder.get_velocity">get_velocity() (encoder.Encoder method)</a>
 </li>
       <li><a href="api.html#cotask.Task.go">go() (cotask.Task method)</a>
 </li>
@@ -237,6 +260,8 @@
       <ul>
         <li><a href="api.html#module-cotask">cotask</a>
 </li>
+        <li><a href="api.html#module-encoder">encoder</a>
+</li>
         <li><a href="api.html#module-IMU_driver">IMU_driver</a>
 </li>
         <li><a href="api.html#module-linesen">linesen</a>
@@ -244,6 +269,10 @@
         <li><a href="api.html#module-motor">motor</a>
 </li>
         <li><a href="api.html#module-task_controller">task_controller</a>
+</li>
+        <li><a href="api.html#module-task_motor">task_motor</a>
+</li>
+        <li><a href="api.html#module-task_observer">task_observer</a>
 </li>
         <li><a href="api.html#module-task_share">task_share</a>
 </li>
@@ -305,13 +334,17 @@
 </li>
       <li><a href="api.html#cotask.Task.reset_profile">reset_profile() (cotask.Task method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#cotask.TaskList.rr_sched">rr_sched() (cotask.TaskList method)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#task_controller.task_controller.run">run() (task_controller.task_controller method)</a>
 
       <ul>
+        <li><a href="api.html#task_motor.task_motor.run">(task_motor.task_motor method)</a>
+</li>
+        <li><a href="api.html#task_observer.task_observer.run">(task_observer.task_observer method)</a>
+</li>
         <li><a href="api.html#task_user.task_user.run">(task_user.task_user method)</a>
 </li>
       </ul></li>
@@ -361,14 +394,32 @@
       <li><a href="api.html#task_controller.task_controller">task_controller (class in task_controller)</a>
 </li>
       <li>
+    task_motor
+
+      <ul>
+        <li><a href="api.html#module-task_motor">module</a>
+</li>
+      </ul></li>
+      <li><a href="api.html#task_motor.task_motor">task_motor (class in task_motor)</a>
+</li>
+      <li>
+    task_observer
+
+      <ul>
+        <li><a href="api.html#module-task_observer">module</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#task_observer.task_observer">task_observer (class in task_observer)</a>
+</li>
+      <li>
     task_share
 
       <ul>
         <li><a href="api.html#module-task_share">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     task_user
 
@@ -379,6 +430,18 @@
       <li><a href="api.html#task_user.task_user">task_user (class in task_user)</a>
 </li>
       <li><a href="api.html#cotask.TaskList">TaskList (class in cotask)</a>
+</li>
+      <li><a href="api.html#encoder.ticks_diff">ticks_diff() (in module encoder)</a>
+</li>
+      <li><a href="api.html#encoder.ticks_us">ticks_us() (in module encoder)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="U">U</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#encoder.Encoder.update">update() (encoder.Encoder method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -395,6 +458,14 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#IMU_driver.BNO055.yaw_rate">yaw_rate() (IMU_driver.BNO055 method)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="Z">Z</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#encoder.Encoder.zero">zero() (encoder.Encoder method)</a>
 </li>
   </ul></td>
 </tr></table>
