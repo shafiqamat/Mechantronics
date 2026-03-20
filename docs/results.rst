@@ -23,7 +23,7 @@ speed and gain.
 
 .. video:: _static/Romi_circle_follow.mp4
 
-   :width: 500px
+   :width: 50%
    :autoplay:
    :nocontrols:
 
@@ -40,6 +40,6 @@ Final Video
 ----------
 .. video:: _static/finalvideo.mp4
 
-   :width: 500px
+   :width: 50%
    :autoplay:
    :nocontrols:
