@@ -45,8 +45,11 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Project Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#authors">Authors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#project-date">Project Date</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#how-our-robot-works">How our robot works:</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#hardware">Hardware</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#demo-video">Demo Video</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#final-video">Final Video</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="design.html">Design</a></li>
@@ -82,23 +85,37 @@
 <h1>Project Overview<a class="headerlink" href="#project-overview" title="Link to this heading"></a></h1>
 <p>This project implements a line-following robot using a MicroPython-based
 control system on an STM32 microcontroller.</p>
+<section id="authors">
+<h2>Authors<a class="headerlink" href="#authors" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Max Soury</p></li>
+<li><p>Shafiq Amat</p></li>
+</ul>
+</section>
+<section id="project-date">
+<h2>Project Date<a class="headerlink" href="#project-date" title="Link to this heading"></a></h2>
+<p>January - March 2026</p>
+<a class="reference internal image-reference" href="_static/robot_photo.jpg"><img alt="Robot Photo" src="_static/robot_photo.jpg" style="width: 500px;" />
+</a>
+</section>
+<section id="how-our-robot-works">
+<h2>How our robot works:<a class="headerlink" href="#how-our-robot-works" title="Link to this heading"></a></h2>
+<p>Romi utilizes a PI controller with a digital IR sensor array to follow a line and then uses state
+estimation to avoid obstacles and navigate a maze without using lines.</p>
+</section>
 <section id="hardware">
 <h2>Hardware<a class="headerlink" href="#hardware" title="Link to this heading"></a></h2>
 <p>The robot consists of the following components:</p>
 <ul class="simple">
 <li><p>2x DC motors with encoders</p></li>
-<li><p>IMU sensor(BNO055)</p></li>
+<li><p>IMU sensor (BNO055)</p></li>
 <li><p>IR sensor array for line detection</p></li>
 <li><p>STM32 Nucleo board</p></li>
 </ul>
-<a class="reference internal image-reference" href="_static/robot_photo.jpg"><img alt="Robot Photo" src="_static/robot_photo.jpg" style="width: 500px;" />
-</a>
 </section>
-<section id="demo-video">
-<h2>Demo Video<a class="headerlink" href="#demo-video" title="Link to this heading"></a></h2>
-<iframe width="560" height="315"
-src="https://www.youtube.com/embed/YOUR_VIDEO_ID"
-frameborder="0" allowfullscreen></iframe></section>
+<section id="final-video">
+<h2>Final Video<a class="headerlink" href="#final-video" title="Link to this heading"></a></h2>
+<div  class="sphinx-contrib-video-container align-left"><video controls="True" preload="auto"><source src="_images/finalvideo.mp4" type="video/mp4"></video></div></section>
 </section>
 
 

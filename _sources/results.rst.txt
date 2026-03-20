@@ -17,30 +17,31 @@ We initially tested the line following capabilities of the robot by following a 
 would input a speed and a gain for the PI controller. The robot would then follow a line at the given 
 speed and gain.
 
-.. image:: _static/initial_line_following.jpg
+.. image:: _static/circulartrack.jpg
    :alt: Circular Track Photo
    :width: 500px
 
-.. raw:: html
+.. video:: _static/Romi_circle_follow.mp4
 
-   <iframe width="560" height="315"
-   src="https://www.youtube.com/embed/YOUR_VIDEO_ID"
-   frameborder="0" allowfullscreen></iframe>
+   :width: 500
+   :height: 300
+   :autoplay:
+   :nocontrols:
 
 Final Track to Navigate:
-------------------------
 
 We then tested the line following capabilities of the robot by following the given track. We gave the robot
 a default speed of ___ and a gain of ___ for Kp and ___ for Ki for the PI controller.
 
-.. image:: _static/robot_photo.jpg 
+.. image:: _static/Game_Track.png 
    :alt: Track to navigate Photo
    :width: 500px
 
-Demo Video
+Final Video
 ----------
-.. raw:: html
+.. video:: _static/finalvideo.mp4
 
-   <iframe width="560" height="315"
-   src="https://www.youtube.com/embed/YOUR_VIDEO_ID"
-   frameborder="0" allowfullscreen></iframe>
+   :width: 500
+   :height: 300
+   :autoplay:
+   :nocontrols:

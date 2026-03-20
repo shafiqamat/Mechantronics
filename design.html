@@ -86,7 +86,7 @@
 <p>The hardware design of the robot is based on the following components:</p>
 <ul class="simple">
 <li><p>2x DC motors with encoders</p></li>
-<li><p>IMU sensor(BNO055)</p></li>
+<li><p>IMU sensor (BNO055)</p></li>
 <li><p>IR sensor array for line detection</p></li>
 <li><p>STM32 Nucleo board</p></li>
 </ul>
@@ -95,10 +95,12 @@
 <h2>Software Design<a class="headerlink" href="#software-design" title="Link to this heading"></a></h2>
 <p>Each of the above hardware components are controlled using drivers we created</p>
 <ul class="simple">
-<li><p>Motor driver</p></li>
-<li><p>Encoder driver</p></li>
-<li><p>IMU driver</p></li>
-<li><p>IR sensor array driver</p></li>
+<li><p>‘Motor driver &lt;motor_module&gt;`</p></li>
+<li><p>‘Encoder driver &lt;encoder_module&gt;`</p></li>
+<li><p>‘IMU driver &lt;IMU_driver_module&gt;`</p></li>
+</ul>
+<ul class="simple">
+<li><p>IR sensor array is a digital sensor array that is implemented directly in the ‘controller task &lt;task_controller_module&gt;` rather than a driver.</p></li>
 </ul>
 </section>
 <section id="implemenation">
@@ -106,13 +108,190 @@
 <p>The robot integrates these drivers into a Finite State Machine which controls the robot’s behavior. These are
 the different files needed to implement the robot:</p>
 <ul class="simple">
-<li><p>task_user.py: This file creates the UI for the robot and is the main way the
+<li><p>‘task_user.py &lt;task_user_module&gt;`: This file creates the UI for the robot and is the main way the
 user interacts with the robot. It is a Finite State Machine that allows the
 user to input commands to the robot.</p></li>
-<li><p>task_controller.py: This file is a controller that implements the PI control law and the state estimation law.</p></li>
-<li><p>task_observer.py: This file is the observer that estimates the robot’s state usign the IMU and the motor encoders.</p></li>
-<li><p>task_motor.py: This file is the motor task that controls the robot’s motors using inputs from the controller, the observer and the user input.</p></li>
+<li><p>‘task_controller.py &lt;task_controller_module&gt;`: This file is a controller that implements the PI control law and the state estimation law.</p></li>
+<li><p>‘task_observer.py &lt;task_observer_module&gt;`: This file is the observer that estimates the robot’s state usign the IMU and the motor encoders.</p></li>
+<li><p>‘task_motor.py &lt;task_motor_module&gt;`: This file is the motor task that controls the robot’s motors using inputs from the controller, the observer and the user input.</p></li>
 </ul>
+<p>How main is set up:</p>
+<p>Our main.py file is the entry point for the robot. It initializes all the hardware components and builds the tasks for Romi.
+The hardware components are:
+- leftMotor
+- rightMotor
+- leftEncoder
+- rightEncoder
+- IMU
+- (line sensor array is initialized in the controller task)
+The Shares and Queues are:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.9%" />
+<col style="width: 11.6%" />
+<col style="width: 11.6%" />
+<col style="width: 44.2%" />
+<col style="width: 11.6%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Variable</p></th>
+<th class="head"><p>Kind</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Name (constructor argument)</p></th>
+<th class="head"><p>Capacity</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><cite>setpoint</cite></p></td>
+<td><p>Share</p></td>
+<td><p><cite>f</cite></p></td>
+<td><p><cite>setpoint</cite></p></td>
+<td><p><cite>1</cite></p></td>
+</tr>
+<tr class="row-odd"><td><p><cite>gainP</cite></p></td>
+<td><p>Share</p></td>
+<td><p><cite>f</cite></p></td>
+<td><p><cite>preportional gain</cite></p></td>
+<td><p><cite>1</cite></p></td>
+</tr>
+<tr class="row-even"><td><p><cite>gainI</cite></p></td>
+<td><p>Share</p></td>
+<td><p><cite>f</cite></p></td>
+<td><p><cite>intergral gain</cite></p></td>
+<td><p><cite>1</cite></p></td>
+</tr>
+<tr class="row-odd"><td><p><cite>R_pos</cite></p></td>
+<td><p>Share</p></td>
+<td><p><cite>f</cite></p></td>
+<td><p><cite>current right value</cite></p></td>
+<td><p><cite>1</cite></p></td>
+</tr>
+<tr class="row-even"><td><p><cite>R_err</cite></p></td>
+<td><p>Share</p></td>
+<td><p><cite>f</cite></p></td>
+<td><p><cite>current right error</cite></p></td>
+<td><p><cite>1</cite></p></td>
+</tr>
+<tr class="row-odd"><td><p><cite>L_pos</cite></p></td>
+<td><p>Share</p></td>
+<td><p><cite>f</cite></p></td>
+<td><p><cite>current left value</cite></p></td>
+<td><p><cite>1</cite></p></td>
+</tr>
+<tr class="row-even"><td><p><cite>L_err</cite></p></td>
+<td><p>Share</p></td>
+<td><p><cite>f</cite></p></td>
+<td><p><cite>current left error</cite></p></td>
+<td><p><cite>1</cite></p></td>
+</tr>
+<tr class="row-odd"><td><p><cite>speed</cite></p></td>
+<td><p>Share</p></td>
+<td><p><cite>f</cite></p></td>
+<td><p><cite>line follow steady speed</cite></p></td>
+<td><p><cite>1</cite></p></td>
+</tr>
+<tr class="row-even"><td><p><cite>start</cite></p></td>
+<td><p>Share</p></td>
+<td><p><cite>B</cite></p></td>
+<td><p><cite>start flag</cite></p></td>
+<td><p><cite>1</cite></p></td>
+</tr>
+<tr class="row-odd"><td><p><cite>line</cite></p></td>
+<td><p>Share</p></td>
+<td><p><cite>B</cite></p></td>
+<td><p><cite>start line follow</cite></p></td>
+<td><p><cite>1</cite></p></td>
+</tr>
+<tr class="row-even"><td><p><cite>current_x</cite></p></td>
+<td><p>Share</p></td>
+<td><p><cite>f</cite></p></td>
+<td><p><cite>current x position</cite></p></td>
+<td><p><cite>1</cite></p></td>
+</tr>
+<tr class="row-odd"><td><p><cite>current_y</cite></p></td>
+<td><p>Share</p></td>
+<td><p><cite>f</cite></p></td>
+<td><p><cite>current y position</cite></p></td>
+<td><p><cite>1</cite></p></td>
+</tr>
+<tr class="row-even"><td><p><cite>heading</cite></p></td>
+<td><p>Share</p></td>
+<td><p><cite>f</cite></p></td>
+<td><p><cite>heading</cite></p></td>
+<td><p><cite>1</cite></p></td>
+</tr>
+<tr class="row-odd"><td><p><cite>leftMotorGo</cite></p></td>
+<td><p>Share</p></td>
+<td><p><cite>B</cite></p></td>
+<td><p><cite>Left Mot. Go Flag</cite></p></td>
+<td><p><cite>1</cite></p></td>
+</tr>
+<tr class="row-even"><td><p><cite>rightMotorGo</cite></p></td>
+<td><p>Share</p></td>
+<td><p><cite>B</cite></p></td>
+<td><p><cite>Right Mot. Go Flag</cite></p></td>
+<td><p><cite>1</cite></p></td>
+</tr>
+<tr class="row-odd"><td><p><cite>startTime</cite></p></td>
+<td><p>Share</p></td>
+<td><p><cite>l</cite></p></td>
+<td><p><cite>Data collection start time (us)</cite></p></td>
+<td><p><cite>1</cite></p></td>
+</tr>
+<tr class="row-even"><td><p><cite>estx</cite></p></td>
+<td><p>Queue</p></td>
+<td><p><cite>f</cite></p></td>
+<td><p><cite>estimated x position</cite></p></td>
+<td><p><cite>400</cite></p></td>
+</tr>
+<tr class="row-odd"><td><p><cite>esty</cite></p></td>
+<td><p>Queue</p></td>
+<td><p><cite>f</cite></p></td>
+<td><p><cite>estimated y position</cite></p></td>
+<td><p><cite>400</cite></p></td>
+</tr>
+<tr class="row-even"><td><p><cite>leftDataValues</cite></p></td>
+<td><p>Queue</p></td>
+<td><p><cite>f</cite></p></td>
+<td><p><cite>Left position data</cite></p></td>
+<td><p><cite>40</cite></p></td>
+</tr>
+<tr class="row-odd"><td><p><cite>leftTimeValues</cite></p></td>
+<td><p>Queue</p></td>
+<td><p><cite>l</cite></p></td>
+<td><p><cite>Left time (us)</cite></p></td>
+<td><p><cite>40</cite></p></td>
+</tr>
+<tr class="row-even"><td><p><cite>rightDataValues</cite></p></td>
+<td><p>Queue</p></td>
+<td><p><cite>f</cite></p></td>
+<td><p><cite>Right position data</cite></p></td>
+<td><p><cite>40</cite></p></td>
+</tr>
+<tr class="row-odd"><td><p><cite>rightTimeValues</cite></p></td>
+<td><p>Queue</p></td>
+<td><p><cite>l</cite></p></td>
+<td><p><cite>Right time (us)</cite></p></td>
+<td><p><cite>40</cite></p></td>
+</tr>
+<tr class="row-even"><td><p><cite>centroidValues</cite></p></td>
+<td><p>Queue</p></td>
+<td><p><cite>f</cite></p></td>
+<td><p><cite>centroid of line follower</cite></p></td>
+<td><p><cite>400</cite></p></td>
+</tr>
+<tr class="row-odd"><td><p><cite>centroidTime</cite></p></td>
+<td><p>Queue</p></td>
+<td><p><cite>l</cite></p></td>
+<td><p><cite>time of line follow data (us)</cite></p></td>
+<td><p><cite>400</cite></p></td>
+</tr>
+</tbody>
+</table>
+<p>We then instantiate the tasks and add them to the task list.
+The tasks are:</p>
+<p>You can click on the task name to see what each task does and it’s parameters.</p>
+<p>Then main.py runs the task list using the cooperative scheduler. which exists when Ctrl-C is pressed.</p>
 </section>
 </section>
 
