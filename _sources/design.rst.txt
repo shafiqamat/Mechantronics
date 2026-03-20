@@ -187,23 +187,23 @@ The tasks are:
    :widths: 28 10 12
 
   * - Task name
-     - Priority
-     - Period (ms)
+    - Priority
+    - Period (ms)
   * - :ref:`Left Motor Task <_task_motor_module>`
-     - `2`
-     - `50`
+    - `2`
+    - `50`
   * - :ref:`Right Motor Task <_task_motor_module>`
-     - `2`
-     - `50`
+    - `2`
+    - `50`
   * - :ref:`Controller Task <_task_controller_module>`
-     - `2`
-     - `50`
+    - `2`
+    - `50`
   * - :ref:`Observer Task <_task_observer_module>`
-     - `1`
-     - `20`
+    - `1`
+    - `20`
   * - :ref:`User Interface Task <_task_user_module>`
-     - `0`
-     - `0`
+    - `0`
+    - `0`
 
 You can click on the task name to see what each task does and it's parameters.
 
