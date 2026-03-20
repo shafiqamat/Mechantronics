@@ -21,7 +21,7 @@ speed and gain.
    :alt: Circular Track Photo
    :width: 500px
 
-.. video:: _static/Romi_circle_follow (1).mp4
+.. video:: _static/Romi_circle_follow.mp4
 
    :width: 50%
    :autoplay:
