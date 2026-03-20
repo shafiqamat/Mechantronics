@@ -96,9 +96,9 @@
 <h2>Software Design<a class="headerlink" href="#software-design" title="Link to this heading"></a></h2>
 <p>Each of the above hardware components are controlled using drivers we created</p>
 <ul class="simple">
-<li><p>‘Motor driver &lt;_motor_module&gt;`</p></li>
-<li><p>‘Encoder driver &lt;_encoder_module&gt;`</p></li>
-<li><p>‘IMU driver &lt;_IMU_driver_module&gt;`</p></li>
+<li><p>:ref:’Motor driver &lt;_motor_module&gt;`</p></li>
+<li><p>:ref:’Encoder driver &lt;_encoder_module&gt;`</p></li>
+<li><p>:ref:’IMU driver &lt;_IMU_driver_module&gt;`</p></li>
 </ul>
 <ul class="simple">
 <li><p>IR sensor array is a digital sensor array that is implemented directly in the ‘controller task &lt;task_controller_module&gt;` rather than a driver.</p></li>
@@ -108,13 +108,33 @@
 <h2>Implemenation<a class="headerlink" href="#implemenation" title="Link to this heading"></a></h2>
 <p>The robot integrates these drivers into a Finite State Machine which controls the robot’s behavior. These are
 the different files needed to implement the robot:</p>
-<ul class="simple">
-<li><p>‘task_user.py &lt;_task_user_module&gt;`: This file creates the UI for the robot and is the main way the
-user interacts with the robot. It is a Finite State Machine that allows the
-user to input commands to the robot.</p></li>
-<li><p>‘task_controller.py &lt;_task_controller_module&gt;`: This file is a controller that implements the PI control law and the state estimation law.</p></li>
-<li><p>‘task_observer.py &lt;_task_observer_module&gt;`: This file is the observer that estimates the robot’s state usign the IMU and the motor encoders.</p></li>
-<li><p>‘task_motor.py &lt;_task_motor_module&gt;`: This file is the motor task that controls the robot’s motors using inputs from the controller, the observer and the user input.</p></li>
+<ul>
+<li><dl class="field-list simple">
+<dt class="field-odd">ref:’task_user.py &lt;_task_user_module&gt;`<span class="colon">:</span></dt>
+<dd class="field-odd"><p>This file creates the UI for the robot and is the main way the</p>
+</dd>
+</dl>
+<p>user interacts with the robot. It is a Finite State Machine that allows the
+user to input commands to the robot.</p>
+</li>
+<li><dl class="field-list simple">
+<dt class="field-odd">ref:’task_controller.py &lt;_task_controller_module&gt;`<span class="colon">:</span></dt>
+<dd class="field-odd"><p>This file is a controller that implements the PI control law and the state estimation law.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="field-list simple">
+<dt class="field-odd">ref:’task_observer.py &lt;_task_observer_module&gt;`<span class="colon">:</span></dt>
+<dd class="field-odd"><p>This file is the observer that estimates the robot’s state usign the IMU and the motor encoders.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="field-list simple">
+<dt class="field-odd">ref:’task_motor.py &lt;_task_motor_module&gt;`<span class="colon">:</span></dt>
+<dd class="field-odd"><p>This file is the motor task that controls the robot’s motors using inputs from the controller, the observer and the user input.</p>
+</dd>
+</dl>
+</li>
 </ul>
 <p>How main is set up:</p>
 <p>Our main.py file is the entry point for the robot. It initializes all the hardware components and builds the tasks for Romi.
@@ -291,14 +311,19 @@ The Shares and Queues are:</p>
 </table>
 <p>We then instantiate the tasks and add them to the task list.
 The tasks are:</p>
-<table class="docutils align-default" id="id1">
-<caption><span class="caption-text">:header-rows: 1
- :widths: 28 10 12</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
-<tbody>
-<tr class="row-odd"><td><p>Task name</p></td>
-<td><p>Priority</p></td>
-<td><p>Period (ms)</p></td>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 56.0%" />
+<col style="width: 20.0%" />
+<col style="width: 24.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Task name</p></th>
+<th class="head"><p>Priority</p></th>
+<th class="head"><p>Period (ms)</p></th>
 </tr>
+</thead>
+<tbody>
 <tr class="row-even"><td><p><span class="xref std std-ref">Left Motor Task</span></p></td>
 <td><p><cite>2</cite></p></td>
 <td><p><cite>50</cite></p></td>
