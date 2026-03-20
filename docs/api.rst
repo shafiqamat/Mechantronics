@@ -18,17 +18,25 @@ API Reference
    :members:
    :undoc-members:
 
+.. _task_motor_module:
+
 .. automodule:: task_motor
    :members:
    :undoc-members:
+
+.. _task_user_module:
 
 .. automodule:: task_user
    :members:
    :undoc-members:
 
+.. _task_controller_module:
+
 .. automodule:: task_controller
    :members:
    :undoc-members:
+
+.. _task_observer_module:
 
 .. automodule:: task_observer
    :members:

@@ -39,6 +39,7 @@ extensions = [
     'sphinx.ext.autodoc',    # ← reads your docstrings automatically
     'sphinx.ext.napoleon',   # ← lets you write cleaner docstrings
     'sphinx.ext.viewcode',   # ← adds "view source" links
+    'sphinxcontrib.video',
 ]
 
 # Mock MicroPython / pyb so modules can be imported when building on desktop

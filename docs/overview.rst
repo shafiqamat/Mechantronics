@@ -4,25 +4,40 @@ Project Overview
 This project implements a line-following robot using a MicroPython-based 
 control system on an STM32 microcontroller.
 
+Authors
+-------
+- Max Soury
+- Shafiq Amat
+
+Project Date
+------------
+January - March 2026
+
+.. image:: _static/robot_photo.jpg
+   :alt: Robot Photo
+   :width: 500px
+
+How our robot works:
+--------------------
+Romi utilizes a PI controller with a digital IR sensor array to follow a line and then uses state 
+estimation to avoid obstacles and navigate a maze without using lines. 
+
 Hardware
 --------
 
 The robot consists of the following components:
 
 - 2x DC motors with encoders
-- IMU sensor(BNO055) 
+- IMU sensor (BNO055) 
 - IR sensor array for line detection
 - STM32 Nucleo board
 
-.. image:: _static/robot_photo.jpg
-   :alt: Robot Photo
-   :width: 500px
-
-Demo Video
+Final Video
 ----------
 
-.. raw:: html
+.. video:: _static/finalvideo.mp4
 
-   <iframe width="560" height="315"
-   src="https://www.youtube.com/embed/YOUR_VIDEO_ID"
-   frameborder="0" allowfullscreen></iframe>
+   :width: 500
+   :height: 300
+   :autoplay:
+   :nocontrols:
