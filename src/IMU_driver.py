@@ -241,10 +241,11 @@ class BNO055:
     def euler(self):
         '''
         Returns the Euler angles of the IMU.
-        :param: None
-        :returns: angles (The Euler angles of the IMU)
-        :return type: tuple
-        :notes: tuple returned - (heading,roll,pitch)
+
+        :Param: None
+        :Returns: angles (The Euler angles of the IMU)
+        :Return type: tuple
+        :Notes: tuple returned - (heading,roll,pitch)
         '''
         buff = bytearray(6)
         self.i2c.mem_read(buff,self.address,self.EUL_Heading_LSB)
