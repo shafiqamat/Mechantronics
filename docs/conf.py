@@ -4,7 +4,25 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
 import os, sys
+import time as _time
 sys.path.insert(0, os.path.abspath('../src'))  # ← adjust this path to wherever your .py files are
+
+
+def _ticks_us():
+    """Provide a MicroPython-like fallback for desktop doc builds."""
+    return int(_time.time() * 1_000_000)
+
+
+def _ticks_diff(new, old):
+    """Provide a MicroPython-like fallback for desktop doc builds."""
+    return new - old
+
+
+if not hasattr(_time, 'ticks_us'):
+    _time.ticks_us = _ticks_us
+
+if not hasattr(_time, 'ticks_diff'):
+    _time.ticks_diff = _ticks_diff
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -24,7 +42,7 @@ extensions = [
 ]
 
 # Mock MicroPython / pyb so modules can be imported when building on desktop
-autodoc_mock_imports = ['pyb', 'utime', 'micropython']
+autodoc_mock_imports = ['pyb', 'utime', 'micropython', 'ulab', 'ulab.numpy']
 
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']

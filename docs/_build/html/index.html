@@ -18,7 +18,8 @@
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" /> 
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Project Overview" href="overview.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -40,11 +41,14 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <!-- Local TOC -->
-              <div class="local-toc"><ul>
-<li><a class="reference internal" href="#">Mechatronics final documentation</a></li>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Project Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="design.html">Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="results.html">Results</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
 </ul>
-</div>
+
         </div>
       </div>
     </nav>
@@ -71,17 +75,61 @@
              
   <section id="mechatronics-final-documentation">
 <h1>Mechatronics final documentation<a class="headerlink" href="#mechatronics-final-documentation" title="Link to this heading"></a></h1>
-<p>Add your content using <code class="docutils literal notranslate"><span class="pre">reStructuredText</span></code> syntax. See the
-<a class="reference external" href="https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html">reStructuredText</a>
-documentation for details.</p>
+<p>This site documents our Mechatronics final project: a MicroPython-based
+line-following robot built around an STM32 Nucleo board, motor encoders,
+an IMU, and an IR sensor array.</p>
+<p>Use the sections below to jump into the project overview, design notes,
+results, and generated API reference.</p>
 <div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Project Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#hardware">Hardware</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#demo-video">Demo Video</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="design.html">Design</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="design.html#hardware-design">Hardware Design</a></li>
+<li class="toctree-l2"><a class="reference internal" href="design.html#software-design">Software Design</a></li>
+<li class="toctree-l2"><a class="reference internal" href="design.html#implemenation">Implemenation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="results.html">Results</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="results.html#goals">Goals</a></li>
+<li class="toctree-l2"><a class="reference internal" href="results.html#initial-line-following-testing">Initial Line Following Testing:</a></li>
+<li class="toctree-l2"><a class="reference internal" href="results.html#final-track-to-navigate">Final Track to Navigate:</a></li>
+<li class="toctree-l2"><a class="reference internal" href="results.html#demo-video">Demo Video</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api.html#motor.Motor"><code class="docutils literal notranslate"><span class="pre">Motor</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#encoder.Encoder"><code class="docutils literal notranslate"><span class="pre">Encoder</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#encoder.ticks_diff"><code class="docutils literal notranslate"><span class="pre">ticks_diff()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#encoder.ticks_us"><code class="docutils literal notranslate"><span class="pre">ticks_us()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#IMU_driver.BNO055"><code class="docutils literal notranslate"><span class="pre">BNO055</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#task_motor.task_motor"><code class="docutils literal notranslate"><span class="pre">task_motor</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#task_user.task_user"><code class="docutils literal notranslate"><span class="pre">task_user</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#task_controller.task_controller"><code class="docutils literal notranslate"><span class="pre">task_controller</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#task_observer.task_observer"><code class="docutils literal notranslate"><span class="pre">task_observer</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#task_share.BaseShare"><code class="docutils literal notranslate"><span class="pre">BaseShare</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#task_share.Queue"><code class="docutils literal notranslate"><span class="pre">Queue</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#task_share.Share"><code class="docutils literal notranslate"><span class="pre">Share</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#task_share.show_all"><code class="docutils literal notranslate"><span class="pre">show_all()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#cotask.Task"><code class="docutils literal notranslate"><span class="pre">Task</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#cotask.TaskList"><code class="docutils literal notranslate"><span class="pre">TaskList</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#linesen.sensor"><code class="docutils literal notranslate"><span class="pre">sensor</span></code></a></li>
+</ul>
+</li>
+</ul>
 </div>
 </section>
 
 
            </div>
           </div>
-          <footer>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="overview.html" class="btn btn-neutral float-right" title="Project Overview" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
 
   <hr/>
 
