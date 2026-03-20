@@ -20,5 +20,6 @@ results, and generated API reference.
 
    overview
    design
+   diagrams
    results
    api

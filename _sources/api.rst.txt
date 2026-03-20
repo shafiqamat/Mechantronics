@@ -1,18 +1,25 @@
 API Reference
 =============
 
+.. _main_module:
 
 .. automodule:: main
    :members:
    :undoc-members:
 
+.. _motor_module:
+
 .. automodule:: motor
    :members:
    :undoc-members:
 
+.. _encoder_module:
+
 .. automodule:: encoder
    :members:
    :undoc-members:
+
+.. _IMU_driver_module:
 
 .. automodule:: IMU_driver
    :members:
