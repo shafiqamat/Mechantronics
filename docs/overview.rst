@@ -37,7 +37,6 @@ Final Video
 
 .. video:: _static/finalvideo.mp4
 
-   :width: 500
-   :height: 300
+   :width: 500px
    :autoplay:
    :nocontrols:
