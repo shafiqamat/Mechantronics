@@ -1,0 +1,143 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Design &mdash; Mechatronics final 1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=29a6c3e3"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Mechatronics final
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">Design</a><ul>
+<li><a class="reference internal" href="#hardware-design">Hardware Design</a></li>
+<li><a class="reference internal" href="#software-design">Software Design</a></li>
+<li><a class="reference internal" href="#implemenation">Implemenation</a></li>
+</ul>
+</li>
+</ul>
+</div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Mechatronics final</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Design</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/design.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="design">
+<h1>Design<a class="headerlink" href="#design" title="Link to this heading"></a></h1>
+<section id="hardware-design">
+<h2>Hardware Design<a class="headerlink" href="#hardware-design" title="Link to this heading"></a></h2>
+<p>The hardware design of the robot is based on the following components:</p>
+<ul class="simple">
+<li><p>2x DC motors with encoders</p></li>
+<li><p>IMU sensor(BNO055)</p></li>
+<li><p>IR sensor array for line detection</p></li>
+<li><p>STM32 Nucleo board</p></li>
+</ul>
+</section>
+<section id="software-design">
+<h2>Software Design<a class="headerlink" href="#software-design" title="Link to this heading"></a></h2>
+<p>Each of the above hardware components are controlled using drivers we created</p>
+<ul class="simple">
+<li><p>Motor driver</p></li>
+<li><p>Encoder driver</p></li>
+<li><p>IMU driver</p></li>
+<li><p>IR sensor array driver</p></li>
+</ul>
+</section>
+<section id="implemenation">
+<h2>Implemenation<a class="headerlink" href="#implemenation" title="Link to this heading"></a></h2>
+<p>The robot integrates these drivers into a Finite State Machine which controls the robot’s behavior. These are
+the different files needed to implement the robot:</p>
+<ul class="simple">
+<li><p>task_user.py: This file is creates the UI for the robot and is the main way the user interacts with the robot.</p></li>
+</ul>
+<p>It is a Finite State Machine that allows the user to input commands to the robot.</p>
+<ul class="simple">
+<li><p>task_controller.py: This file is a controller that implements the PI control law and the state estimation law.</p></li>
+<li><p>task_observer.py: This file is the observer that estimates the robot’s state usign the IMU and the motor encoders.</p></li>
+<li><p>task_motor.py: This file is the motor task that controls the robot’s motors using inputs from the controller, the observer and the user input.</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Max Soury and Shafiq Amat.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

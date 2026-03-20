@@ -328,10 +328,11 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">euler</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        Returns the Euler angles of the IMU.</span>
-<span class="sd">        :param: None</span>
-<span class="sd">        :returns: angles (The Euler angles of the IMU)</span>
-<span class="sd">        :return type: tuple</span>
-<span class="sd">        :notes: tuple returned - (heading,roll,pitch)</span>
+
+<span class="sd">        :Param: None</span>
+<span class="sd">        :Returns: angles (The Euler angles of the IMU)</span>
+<span class="sd">        :Return type: tuple</span>
+<span class="sd">        :Notes: tuple returned - (heading,roll,pitch)</span>
 <span class="sd">        &#39;&#39;&#39;</span>
         <span class="n">buff</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">i2c</span><span class="o">.</span><span class="n">mem_read</span><span class="p">(</span><span class="n">buff</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">address</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">EUL_Heading_LSB</span><span class="p">)</span>

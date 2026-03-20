@@ -213,11 +213,21 @@ if status has certian strings inside of it to calibrate without printing</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="IMU_driver.BNO055.euler">
 <span class="sig-name descname"><span class="pre">euler</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/IMU_driver.html#BNO055.euler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#IMU_driver.BNO055.euler" title="Link to this definition"></a></dt>
-<dd><p>Returns the Euler angles of the IMU.
-:param: None
-:returns: angles (The Euler angles of the IMU)
-:return type: tuple
-:notes: tuple returned - (heading,roll,pitch)</p>
+<dd><p>Returns the Euler angles of the IMU.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Param<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>angles (The Euler angles of the IMU)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+<dt class="field-even">Notes<span class="colon">:</span></dt>
+<dd class="field-even"><p>tuple returned - (heading,roll,pitch)</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -399,7 +409,7 @@ and then manipulating shared variables to communicate with other tasks based on 
 <p>&#64;author: maxwe</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="task_controller.task_controller">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">task_controller.</span></span><span class="sig-name descname"><span class="pre">task_controller</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Kp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ki</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">setpoint</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">speed</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">line</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R_pos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R_err</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">L_pos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">L_err</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centroidValues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centroidTime</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">esty</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">heading</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/task_controller.html#task_controller"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#task_controller.task_controller" title="Link to this definition"></a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">task_controller.</span></span><span class="sig-name descname"><span class="pre">task_controller</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Kp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ki</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">setpoint</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">speed</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">line</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R_pos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R_err</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">L_pos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">L_err</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centroidValues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centroidTime</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">esty</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">heading</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">IMU</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/task_controller.html#task_controller"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#task_controller.task_controller" title="Link to this definition"></a></dt>
 <dd><dl class="py method">
 <dt class="sig sig-object py" id="task_controller.task_controller.run">
 <span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/task_controller.html#task_controller.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#task_controller.task_controller.run" title="Link to this definition"></a></dt>
