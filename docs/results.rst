@@ -1,0 +1,45 @@
+Results
+=======
+
+Goals
+-----
+- To follow a line using:
+    - PI control
+    - IR sensor array
+- To avoid obstacles and navigate a maze without using lines using state estimation and the following hardware:
+    - IMU sensor(BNO055)
+    - Motor encoders
+
+Initial Line Following Testing:
+-------------------------------
+
+We initially tested the line following capabilities of the robot by following a circular track. The user
+would input a speed and a gain for the PI controller. The robot would then follow a line at the given 
+speed and gain.
+
+.. image:: _static/initial_line_following.jpg
+   :alt: Circular Track Photo
+   :width: 500px
+
+.. raw:: html
+   <iframe width="560" height="315"
+   src="https://www.youtube.com/embed/YOUR_VIDEO_ID"
+   frameborder="0" allowfullscreen></iframe>
+
+Final Track to Navigate:
+-----------------------
+
+We then tested the line following capabilities of the robot by following the given track. We gave the robot
+a default speed of ___ and a gain of ___ for Kp and ___ for Ki for the PI controller.
+
+.. image:: _static/robot_photo.jpg 
+   :alt: Track to navigate Photo
+   :width: 500px
+
+Demo Video
+----------
+.. raw:: html
+
+   <iframe width="560" height="315"
+   src="https://www.youtube.com/embed/YOUR_VIDEO_ID"
+   frameborder="0" allowfullscreen></iframe>

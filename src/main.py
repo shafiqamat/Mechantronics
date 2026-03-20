@@ -71,7 +71,7 @@ rightMotorTask = task_motor(rightMotor, rightEncoder, start, startTime, line,
                             R_pos, R_err, rightMotorGo, rightDataValues, rightTimeValues)
 
 controllerTask = task_controller(gainP, gainI, setpoint, speed,start,line,
-                                 R_pos, R_err, L_pos, L_err,centroidValues, centroidTime, estx, esty, current_x, current_y, heading)
+                                 R_pos, R_err, L_pos, L_err,centroidValues, centroidTime, estx, esty, current_x, current_y, heading, IMU)
 
 observerTask  = task_observer(IMU, R_pos, R_err, L_pos, L_err, estx,esty, start, current_x, current_y, heading)
 

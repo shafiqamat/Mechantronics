@@ -16,12 +16,14 @@ S1_STEP  = micropython.const(1)  # State 1 positional setpoint controll
 S2_LINE  = micropython.const(2)  # State 2 line following controller
 S3_state_estimation = micropython.const(3)  # State 3 state estimation
 S4_turn = micropython.const(4)  # State 4 turn
+S5_DRIVE_TO_WALL = micropython.const(5)  # State 5 drive forward until wall impact
+S6_BACK_UP = micropython.const(6)  # State 6 back away from wall
 
 
 class task_controller:
     
     def __init__(self, Kp, Ki, setpoint,speed, start, line, R_pos, R_err, L_pos, L_err,
-                 centroidValues, centroidTime, estx, esty, current_x, current_y, heading):
+                 centroidValues, centroidTime, estx, esty, current_x, current_y, heading, IMU):
         '''
         Initializes the task_controller class. Task controller is responsible for how the robot/motors respond to the line sensor inputs.
 
@@ -81,10 +83,75 @@ class task_controller:
         self._turn = 0
         self.init_turn_flag = False
         self.heading = heading
+        self.IMU = IMU
+        self._turn_start_heading = 0.0
+        self._segment_start_x = 0.0
+        self._segment_start_y = 0.0
+        self._segment_target = 0.0
+        self._next_state_after_turn = S0_IDLE
+
+        self._line_exit_x_min = 100
+        self._line_exit_x_max = 150
+        self._line_exit_y_min = 100
+        self._line_exit_y_max = 150
+
+        self._forward_after_line_mm = 75.0
+        self._backup_distance_mm = 60.0
+        self._state_est_speed = 30.0
+        self._turn_effort = 25.0
+        self._wall_drive_effort = 22.0
+        self._wall_hit_accel_threshold = 2.5
+        self._wall_hit_count = 0
+        self._wall_hit_count_required = 2
 
         self.sens = linesen.sensor(Pin.cpu.A6,Pin.cpu.A7,
                                   Pin.cpu.B6,
                                   Pin.cpu.C7,Pin.cpu.A9)
+
+    def _reset_motion_state(self):
+        '''Stops the robot and clears controller accumulators used across states.'''
+        self.L_err.put(0)
+        self.R_err.put(0)
+        self.ILerr = 0.0
+        self.IRerr = 0.0
+        self.totErr = 0.0
+        self._Kpleft = 0.0
+        self._Kpright = 0.0
+        self._Kileft = 0.0
+        self._Kiright = 0.0
+        self.init_turn_flag = False
+        self._wall_hit_count = 0
+
+    def _start_distance_segment(self, distance_mm):
+        '''Captures the starting pose for a distance-based maneuver.'''
+        self._segment_start_x = self.current_x.get()
+        self._segment_start_y = self.current_y.get()
+        self._segment_target = distance_mm
+
+    def _distance_traveled(self):
+        '''Returns the planar distance traveled since the active segment started.'''
+        dx = self.current_x.get() - self._segment_start_x
+        dy = self.current_y.get() - self._segment_start_y
+        return (dx * dx + dy * dy) ** 0.5
+
+    def _normalized_heading_delta(self, current_heading):
+        '''Wrap heading error into [-180, 180] so turns behave through heading rollover.'''
+        delta = current_heading - self._turn_start_heading
+        while delta > 180:
+            delta -= 360
+        while delta < -180:
+            delta += 360
+        return delta
+
+    def _wall_hit_detected(self):
+        '''Uses linear acceleration to detect a collision with the wall.'''
+        lin_x, lin_y, _ = self.IMU.get_linear_accel_mps2()
+        accel_mag = (lin_x * lin_x + lin_y * lin_y) ** 0.5
+        if accel_mag >= self._wall_hit_accel_threshold:
+            self._wall_hit_count += 1
+        else:
+            self._wall_hit_count = 0
+        return self._wall_hit_count >= self._wall_hit_count_required
 
     def run(self):
         '''
@@ -104,6 +171,7 @@ class task_controller:
                 if self.start.get() and self.line.get():
                     self.state = S2_LINE
                     self.c_count = 0
+                    self._reset_motion_state()
                 elif self.start.get():
                     self.state = S1_STEP
 #==============================================================================
@@ -197,14 +265,14 @@ class task_controller:
                 self.L_err.put(leff)
                 self.R_err.put(reff)
 
-                if self.current_x.get() in range(100,150) and self.current_y.get() in range(100,150):
+                if (self._line_exit_x_min <= self.current_x.get() <= self._line_exit_x_max and
+                        self._line_exit_y_min <= self.current_y.get() <= self._line_exit_y_max):
                     self.line.put(False)
+                    self._start_distance_segment(self._forward_after_line_mm)
                     self.state = S3_state_estimation
                 
                 if self.start.get() == False:
-                    self.L_err.put(0)
-                    self.R_err.put(0)
-                    self.totErr = 0.0
+                    self._reset_motion_state()
                     self.state = S0_IDLE
 #==============================================================================
             elif self.state == S3_state_estimation:
@@ -221,23 +289,19 @@ class task_controller:
                 The robot will then transition to state 4, turn, if the robot is within the turn range.
                 The robot will then transition to state 0, idle, if the start flag is false.
                 '''
-                way_point_1 = 150
-                leff = self._base_speed
-                reff = self._base_speed
-                x_error = way_point_1 - self.current_x.get()
-                acc_error_L = x_error * 0.05
-                acc_error_R = x_error * 0.05
-                self._Kpleft = self._Kpleft * x_error
-                self._Kpright = self._Kpright * x_error
-                self._Kileft = self._Kileft * acc_error_L
-                self._Kiright = self._Kiright * acc_error_R
-                leff += self._Kpleft + self._Kileft
-                reff += self._Kpright + self._Kiright
-                self.L_err.put(leff)
-                self.R_err.put(reff)
-                if self.current_x.get() in range(way_point_1-10,way_point_1+10):
+                if not self.start.get():
+                    self._reset_motion_state()
+                    self.state = S0_IDLE
+                    continue
+
+                self.L_err.put(self._state_est_speed)
+                self.R_err.put(self._state_est_speed)
+
+                if self._distance_traveled() >= self._segment_target:
+                    self._reset_motion_state()
                     self.state = S4_turn
-                    self._turn = 90
+                    self._turn = -90
+                    self._next_state_after_turn = S5_DRIVE_TO_WALL
                     self.init_turn_flag = True
 
 #==============================================================================
@@ -247,24 +311,80 @@ class task_controller:
                 The robot is in turn and waiting until the turn is complete.
                 The robot will then transition to state 3, state estimation, once turn is complete
                 '''
+                if not self.start.get():
+                    self._reset_motion_state()
+                    self.state = S0_IDLE
+                    continue
+
                 if self.init_turn_flag:
-                    old_heading = self.heading.get()
+                    self._turn_start_heading = self.heading.get()
                     self.init_turn_flag = False
-                if self._turn == 90:
-                    self.L_err.put(25*0.045)
-                    self.R_err.put(-25)
-                    if self.heading.get() - old_heading >= 90:
-                        self.state = S3_state_estimation
-                elif self._turn == -90:
-                    self.L_err.put(-25*0.045)
-                    self.R_err.put(25)
-                    if self.heading.get() - old_heading <= -90:
-                        self.state = S3_state_estimation
-                elif self._turn == 180:
-                    self.L_err.put(-25*0.045)
-                    self.R_err.put(25)
-                    if self.heading.get() - old_heading >= 180:
-                        self.state = S3_state_estimation
+
+                heading_delta = self._normalized_heading_delta(self.heading.get())
+
+                if self._turn > 0:
+                    self.L_err.put(self._turn_effort)
+                    self.R_err.put(-self._turn_effort)
+                    if heading_delta >= self._turn:
+                        self._reset_motion_state()
+                        if self._next_state_after_turn == S2_LINE:
+                            self.line.put(True)
+                            self.c_count = 0
+                        self.state = self._next_state_after_turn
+                elif self._turn < 0:
+                    self.L_err.put(-self._turn_effort)
+                    self.R_err.put(self._turn_effort)
+                    if heading_delta <= self._turn:
+                        self._reset_motion_state()
+                        if self._next_state_after_turn == S2_LINE:
+                            self.line.put(True)
+                            self.c_count = 0
+                        self.state = self._next_state_after_turn
+                else:
+                    self._reset_motion_state()
+                    self.state = self._next_state_after_turn
+
+#==============================================================================
+            elif self.state == S5_DRIVE_TO_WALL:
+                '''
+                State 5: Drive To Wall
+                The robot drives straight until a wall impact is detected from the IMU
+                linear acceleration estimate.
+                '''
+                if not self.start.get():
+                    self._reset_motion_state()
+                    self.state = S0_IDLE
+                    continue
+
+                self.L_err.put(self._wall_drive_effort)
+                self.R_err.put(self._wall_drive_effort)
+
+                if self._wall_hit_detected():
+                    self._reset_motion_state()
+                    self._start_distance_segment(self._backup_distance_mm)
+                    self.state = S6_BACK_UP
+
+#==============================================================================
+            elif self.state == S6_BACK_UP:
+                '''
+                State 6: Back Up
+                The robot backs away from the wall, then turns left and resumes line
+                following.
+                '''
+                if not self.start.get():
+                    self._reset_motion_state()
+                    self.state = S0_IDLE
+                    continue
+
+                self.L_err.put(-self._state_est_speed)
+                self.R_err.put(-self._state_est_speed)
+
+                if self._distance_traveled() >= self._segment_target:
+                    self._reset_motion_state()
+                    self.state = S4_turn
+                    self._turn = 90
+                    self._next_state_after_turn = S2_LINE
+                    self.init_turn_flag = True
               
 #==============================================================================
             yield self.state
