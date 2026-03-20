@@ -41,12 +41,14 @@ How main is set up:
 
 Our main.py file is the entry point for the robot. It initializes all the hardware components and builds the tasks for Romi.
 The hardware components are:
+
 - leftMotor
 - rightMotor
 - leftEncoder
 - rightEncoder
 - IMU
 - (line sensor array is initialized in the controller task)
+
 The Shares and Queues are:
 
 .. list-table::
