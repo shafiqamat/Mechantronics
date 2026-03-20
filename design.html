@@ -96,9 +96,9 @@
 <h2>Software Design<a class="headerlink" href="#software-design" title="Link to this heading"></a></h2>
 <p>Each of the above hardware components are controlled using drivers we created</p>
 <ul class="simple">
-<li><p>‘Motor driver &lt;motor_module&gt;`</p></li>
-<li><p>‘Encoder driver &lt;encoder_module&gt;`</p></li>
-<li><p>‘IMU driver &lt;IMU_driver_module&gt;`</p></li>
+<li><p>‘Motor driver &lt;_motor_module&gt;`</p></li>
+<li><p>‘Encoder driver &lt;_encoder_module&gt;`</p></li>
+<li><p>‘IMU driver &lt;_IMU_driver_module&gt;`</p></li>
 </ul>
 <ul class="simple">
 <li><p>IR sensor array is a digital sensor array that is implemented directly in the ‘controller task &lt;task_controller_module&gt;` rather than a driver.</p></li>
@@ -109,12 +109,12 @@
 <p>The robot integrates these drivers into a Finite State Machine which controls the robot’s behavior. These are
 the different files needed to implement the robot:</p>
 <ul class="simple">
-<li><p>‘task_user.py &lt;task_user_module&gt;`: This file creates the UI for the robot and is the main way the
+<li><p>‘task_user.py &lt;_task_user_module&gt;`: This file creates the UI for the robot and is the main way the
 user interacts with the robot. It is a Finite State Machine that allows the
 user to input commands to the robot.</p></li>
-<li><p>‘task_controller.py &lt;task_controller_module&gt;`: This file is a controller that implements the PI control law and the state estimation law.</p></li>
-<li><p>‘task_observer.py &lt;task_observer_module&gt;`: This file is the observer that estimates the robot’s state usign the IMU and the motor encoders.</p></li>
-<li><p>‘task_motor.py &lt;task_motor_module&gt;`: This file is the motor task that controls the robot’s motors using inputs from the controller, the observer and the user input.</p></li>
+<li><p>‘task_controller.py &lt;_task_controller_module&gt;`: This file is a controller that implements the PI control law and the state estimation law.</p></li>
+<li><p>‘task_observer.py &lt;_task_observer_module&gt;`: This file is the observer that estimates the robot’s state usign the IMU and the motor encoders.</p></li>
+<li><p>‘task_motor.py &lt;_task_motor_module&gt;`: This file is the motor task that controls the robot’s motors using inputs from the controller, the observer and the user input.</p></li>
 </ul>
 <p>How main is set up:</p>
 <p>Our main.py file is the entry point for the robot. It initializes all the hardware components and builds the tasks for Romi.

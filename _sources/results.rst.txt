@@ -23,15 +23,15 @@ speed and gain.
 
 .. video:: _static/Romi_circle_follow.mp4
 
-   :width: 500
-   :height: 300
+   :width: 500px
+   :height: 300px
    :autoplay:
    :nocontrols:
 
 Final Track to Navigate:
 
 We then tested the line following capabilities of the robot by following the given track. We gave the robot
-a default speed of ___ and a gain of ___ for Kp and ___ for Ki for the PI controller.
+a default speed of ___ and a gain of 5 for Kp and 0.3 for Ki for the PI controller.
 
 .. image:: _static/Game_Track.png 
    :alt: Track to navigate Photo
@@ -41,7 +41,7 @@ Final Video
 ----------
 .. video:: _static/finalvideo.mp4
 
-   :width: 500
-   :height: 300
+   :width: 500px
+   :height: 300px
    :autoplay:
    :nocontrols:
