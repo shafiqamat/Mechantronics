@@ -16,9 +16,9 @@ Software Design
 
 Each of the above hardware components are controlled using drivers we created
 
-- 'Motor driver <motor_module>`
-- 'Encoder driver <encoder_module>`
-- 'IMU driver <IMU_driver_module>`
+- 'Motor driver <_motor_module>`
+- 'Encoder driver <_encoder_module>`
+- 'IMU driver <_IMU_driver_module>`
 * IR sensor array is a digital sensor array that is implemented directly in the 'controller task <task_controller_module>` rather than a driver.
 
 Implemenation
@@ -27,15 +27,15 @@ Implemenation
 The robot integrates these drivers into a Finite State Machine which controls the robot's behavior. These are
 the different files needed to implement the robot:
 
-- 'task_user.py <task_user_module>`: This file creates the UI for the robot and is the main way the
+- 'task_user.py <_task_user_module>`: This file creates the UI for the robot and is the main way the
   user interacts with the robot. It is a Finite State Machine that allows the
   user to input commands to the robot.
 
-- 'task_controller.py <task_controller_module>`: This file is a controller that implements the PI control law and the state estimation law. 
+- 'task_controller.py <_task_controller_module>`: This file is a controller that implements the PI control law and the state estimation law. 
 
-- 'task_observer.py <task_observer_module>`: This file is the observer that estimates the robot's state usign the IMU and the motor encoders.
+- 'task_observer.py <_task_observer_module>`: This file is the observer that estimates the robot's state usign the IMU and the motor encoders.
 
-- 'task_motor.py <task_motor_module>`: This file is the motor task that controls the robot's motors using inputs from the controller, the observer and the user input.
+- 'task_motor.py <_task_motor_module>`: This file is the motor task that controls the robot's motors using inputs from the controller, the observer and the user input.
 
 How main is set up:
 
@@ -186,22 +186,22 @@ The tasks are:
    :header-rows: 1
    :widths: 28 10 12
 
-   * - Task name
+  * - Task name
      - Priority
      - Period (ms)
-  * - :ref:`Left Motor Task <task_motor_module>`
+  * - :ref:`Left Motor Task <_task_motor_module>`
      - `2`
      - `50`
-  * - :ref:`Right Motor Task <task_motor_module>`
+  * - :ref:`Right Motor Task <_task_motor_module>`
      - `2`
      - `50`
-  * - :ref:`Controller Task <task_controller_module>`
+  * - :ref:`Controller Task <_task_controller_module>`
      - `2`
      - `50`
-  * - :ref:`Observer Task <task_observer_module>`
+  * - :ref:`Observer Task <_task_observer_module>`
      - `1`
      - `20`
-  * - :ref:`User Interface Task <task_user_module>`
+  * - :ref:`User Interface Task <_task_user_module>`
      - `0`
      - `0`
 
