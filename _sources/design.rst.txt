@@ -210,3 +210,12 @@ The tasks are:
 You can click on the task name to see what each task does and it's parameters.
 
 Then main.py runs the task list using the cooperative scheduler. which exists when Ctrl-C is pressed.
+
+Electronic Implementation
+--------------------------
+
+Below is a wiring diagram of the robot
+
+.. image:: _static/wiring_diagram.png
+   :alt: Wiring Diagram
+   :width: 500px
