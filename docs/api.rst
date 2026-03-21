@@ -2,6 +2,7 @@ API Reference
 =============
 
 .. _main_module:
+
 main
 ----
 .. automodule:: main
@@ -53,7 +54,7 @@ Task user
 .. _task_controller_module:
 
 Task controller
---------------
+---------------
 
 .. automodule:: task_controller
    :members:

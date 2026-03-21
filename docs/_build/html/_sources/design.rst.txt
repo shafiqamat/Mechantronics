@@ -16,37 +16,39 @@ Software Design
 
 Each of the above hardware components are controlled using drivers we created
 
-- Motor driver
-- Encoder driver
-- IMU driver
-- IR sensor array driver
+- :ref:`Motor driver <motor_module>`
+- :ref:`Encoder driver <encoder_module>`
+- :ref:`IMU driver <IMU_driver_module>`
+- The IR sensor array is implemented directly in the :ref:`controller task <task_controller_module>` rather than as a standalone driver.
 
-Implemenation
+Implementation
 ---------------
 
 The robot integrates these drivers into a Finite State Machine which controls the robot's behavior. These are
 the different files needed to implement the robot:
 
-- task_user.py: This file creates the UI for the robot and is the main way the
+- :ref:`task_user.py <task_user_module>`: This file creates the UI for the robot and is the main way the
   user interacts with the robot. It is a Finite State Machine that allows the
   user to input commands to the robot.
 
-- task_controller.py: This file is a controller that implements the PI control law and the state estimation law. 
+- :ref:`task_controller.py <task_controller_module>`: This file is a controller that implements the PI control law and the state estimation law. 
 
-- task_observer.py: This file is the observer that estimates the robot's state usign the IMU and the motor encoders.
+- :ref:`task_observer.py <task_observer_module>`: This file is the observer that estimates the robot's state usign the IMU and the motor encoders.
 
-- task_motor.py: This file is the motor task that controls the robot's motors using inputs from the controller, the observer and the user input.
+- :ref:`task_motor.py <task_motor_module>`: This file is the motor task that controls the robot's motors using inputs from the controller, the observer and the user input.
 
 How main is set up:
 
 Our main.py file is the entry point for the robot. It initializes all the hardware components and builds the tasks for Romi.
 The hardware components are:
+
 - leftMotor
 - rightMotor
 - leftEncoder
 - rightEncoder
 - IMU
 - (line sensor array is initialized in the controller task)
+
 The Shares and Queues are:
 
 .. list-table::
@@ -189,22 +191,31 @@ The tasks are:
    * - Task name
      - Priority
      - Period (ms)
-  * - :ref:`Left Motor Task <task_motor_module>`
+   * - :ref:`Left Motor Task <task_motor_module>`
      - `2`
      - `50`
-  * - :ref:`Right Motor Task <task_motor_module>`
+   * - :ref:`Right Motor Task <task_motor_module>`
      - `2`
      - `50`
-  * - :ref:`Controller Task <task_controller_module>`
+   * - :ref:`Controller Task <task_controller_module>`
      - `2`
      - `50`
-  * - :ref:`Observer Task <task_observer_module>`
+   * - :ref:`Observer Task <task_observer_module>`
      - `1`
      - `20`
-  * - :ref:`User Interface Task <task_user_module>`
+   * - :ref:`User Interface Task <task_user_module>`
      - `0`
      - `0`
 
 You can click on the task name to see what each task does and it's parameters.
 
 Then main.py runs the task list using the cooperative scheduler. which exists when Ctrl-C is pressed.
+
+Electronic Implementation
+--------------------------
+
+Below is a wiring diagram of the robot
+
+.. image:: _static/wiring_diagram.png
+   :alt: Wiring Diagram
+   :width: 500px

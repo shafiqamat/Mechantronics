@@ -8,6 +8,7 @@
   <title>task_controller &mdash; Mechatronics final 1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=2970a53a" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
@@ -39,8 +40,15 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <!-- Local TOC -->
-              <div class="local-toc"></div>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">Project Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../design.html">Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../diagrams.html">Task Diagrams and Finite State Machines Diagrams</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../results.html">Results</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API Reference</a></li>
+</ul>
+
         </div>
       </div>
     </nav>
@@ -66,11 +74,11 @@
            <div itemprop="articleBody">
              
   <h1>Source code for task_controller</h1><div class="highlight"><pre>
-<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
-<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">Created on Thu Feb  5 13:24:14 2026</span>
+<span></span><span class="sd">&quot;&quot;&quot;Closed-loop controller and game-state logic for the Romi robot.</span>
 
-<span class="sd">@author: maxwe</span>
+<span class="sd">This task contains the position controller used for single-motor testing, the</span>
+<span class="sd">line-following controller, and the state-estimation/game-track logic used</span>
+<span class="sd">during the final autonomous run.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">task_share</span><span class="w">   </span><span class="kn">import</span> <span class="n">Share</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pyb</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pin</span>
@@ -83,49 +91,49 @@
 <span class="n">S1_STEP</span>  <span class="o">=</span> <span class="n">micropython</span><span class="o">.</span><span class="n">const</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># State 1 positional setpoint controll</span>
 <span class="n">S2_LINE</span>  <span class="o">=</span> <span class="n">micropython</span><span class="o">.</span><span class="n">const</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># State 2 line following controller</span>
 <span class="n">S3_state_estimation</span> <span class="o">=</span> <span class="n">micropython</span><span class="o">.</span><span class="n">const</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>  <span class="c1"># State 3 state estimation</span>
-<span class="n">S4_turn</span> <span class="o">=</span> <span class="n">micropython</span><span class="o">.</span><span class="n">const</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>  <span class="c1"># State 4 turn</span>
-<span class="n">S5_DRIVE_TO_WALL</span> <span class="o">=</span> <span class="n">micropython</span><span class="o">.</span><span class="n">const</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>  <span class="c1"># State 5 drive forward until wall impact</span>
-<span class="n">S6_BACK_UP</span> <span class="o">=</span> <span class="n">micropython</span><span class="o">.</span><span class="n">const</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span>  <span class="c1"># State 6 back away from wall</span>
+<span class="n">S4_POINT</span> <span class="o">=</span> <span class="n">micropython</span><span class="o">.</span><span class="n">const</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span> <span class="c1"># State 4 point to heading</span>
+<span class="n">S5_DIST</span>  <span class="o">=</span> <span class="n">micropython</span><span class="o">.</span><span class="n">const</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span> <span class="c1"># State 5 straight line distance</span>
+<span class="n">S6_HUB</span>   <span class="o">=</span> <span class="n">micropython</span><span class="o">.</span><span class="n">const</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span> <span class="c1"># State 6 keeps track of the gamestate</span>
+<span class="n">S7_FEEL</span>  <span class="o">=</span> <span class="n">micropython</span><span class="o">.</span><span class="n">const</span><span class="p">(</span><span class="mi">7</span><span class="p">)</span> <span class="c1"># State 7 drive until bump is detected</span>
+
+
+
 
 
 <div class="viewcode-block" id="task_controller">
 <a class="viewcode-back" href="../api.html#task_controller.task_controller">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">task_controller</span><span class="p">:</span>
-    
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Kp</span><span class="p">,</span> <span class="n">Ki</span><span class="p">,</span> <span class="n">setpoint</span><span class="p">,</span><span class="n">speed</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">line</span><span class="p">,</span> <span class="n">R_pos</span><span class="p">,</span> <span class="n">R_err</span><span class="p">,</span> <span class="n">L_pos</span><span class="p">,</span> <span class="n">L_err</span><span class="p">,</span>
-                 <span class="n">centroidValues</span><span class="p">,</span> <span class="n">centroidTime</span><span class="p">,</span> <span class="n">estx</span><span class="p">,</span> <span class="n">esty</span><span class="p">,</span> <span class="n">current_x</span><span class="p">,</span> <span class="n">current_y</span><span class="p">,</span> <span class="n">heading</span><span class="p">,</span> <span class="n">IMU</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">        Initializes the task_controller class. Task controller is responsible for how the robot/motors respond to the line sensor inputs.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Controller task for setpoint, line-following, and track navigation.&quot;&quot;&quot;</span>
 
-<span class="sd">        :param: Kp (The proportional gain for the line following controller)</span>
-<span class="sd">        :param: Ki (The integral gain for the line following controller)</span>
-<span class="sd">        :param: setpoint (The setpoint for the line following controller)</span>
-<span class="sd">        :param: speed (The speed for the line following controller)</span>
-<span class="sd">        :param: start (The start flag for the line following controller)</span>
-<span class="sd">        :param: line (The line flag for the line following controller)</span>
-<span class="sd">        :param: R_pos (The right position for the line following controller)</span>
-<span class="sd">        :param: R_err (The right error for the line following controller)</span>
-<span class="sd">        :param: L_pos (The left position for the line following controller)</span>
-<span class="sd">        :param: L_err (The left error for the line following controller)</span>
-<span class="sd">        :param: centroidValues (The centroid values for the line following controller)</span>
-<span class="sd">        :param: centroidTime (The centroid time for the line following controller)</span>
-<span class="sd">        :param: estx (The estimated x position for the line following controller)</span>
-<span class="sd">        :param: esty (The estimated y position for the line following controller)</span>
-<span class="sd">        :param: current_x (The current x position for the line following controller)</span>
-<span class="sd">        :param: current_y (The current y position for the line following controller)</span>
-<span class="sd">        :param: heading (The heading for the line following controller)</span>
-<span class="sd">        &#39;&#39;&#39;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Kp</span><span class="p">,</span> <span class="n">Ki</span><span class="p">,</span> <span class="n">setpoint</span><span class="p">,</span><span class="n">speed</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">line</span><span class="p">,</span> <span class="n">R_pos</span><span class="p">,</span> <span class="n">R_err</span><span class="p">,</span> <span class="n">L_pos</span><span class="p">,</span> <span class="n">L_err</span><span class="p">,</span>
+                 <span class="n">centroidValues</span><span class="p">,</span> <span class="n">centroidTime</span><span class="p">,</span> <span class="n">current_x</span><span class="p">,</span> <span class="n">current_y</span><span class="p">,</span><span class="n">heading</span><span class="p">,</span><span class="n">dist</span><span class="p">,</span><span class="n">accl</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the controller task and cache all shares and queues.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            Kp: Share containing the proportional gain.</span>
+<span class="sd">            Ki: Share containing the integral gain.</span>
+<span class="sd">            setpoint: Share containing the position target for motor tests.</span>
+<span class="sd">            speed: Share containing the base line-following speed.</span>
+<span class="sd">            start: Share used to start or stop the controller flow.</span>
+<span class="sd">            line: Share indicating whether line-following mode is active.</span>
+<span class="sd">            R_pos: Share containing the right encoder position.</span>
+<span class="sd">            R_err: Share used to publish the right motor command.</span>
+<span class="sd">            L_pos: Share containing the left encoder position.</span>
+<span class="sd">            L_err: Share used to publish the left motor command.</span>
+<span class="sd">            centroidValues: Queue reserved for line-following telemetry.</span>
+<span class="sd">            centroidTime: Queue reserved for line-following timestamps.</span>
+<span class="sd">            current_x: Share containing the estimated x position.</span>
+<span class="sd">            current_y: Share containing the estimated y position.</span>
+<span class="sd">            heading: Share containing the estimated heading.</span>
+<span class="sd">            dist: Share containing the estimated travel distance.</span>
+<span class="sd">            accl: Share containing acceleration data from the IMU.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1">#global values</span>
         <span class="c1">#--------------------------------       </span>
         <span class="bp">self</span><span class="o">.</span><span class="n">Kp</span> <span class="o">=</span> <span class="n">Kp</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">Ki</span> <span class="o">=</span> <span class="n">Ki</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_Kpleft</span> <span class="o">=</span> <span class="mf">0.0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_Kpright</span> <span class="o">=</span> <span class="mf">0.0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_Kileft</span> <span class="o">=</span> <span class="mf">0.0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_Kiright</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">setpoint</span> <span class="o">=</span> <span class="n">setpoint</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">speed</span> <span class="o">=</span> <span class="n">speed</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_base_speed</span> <span class="o">=</span> <span class="mi">30</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="n">start</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">line</span> <span class="o">=</span> <span class="n">line</span>
         <span class="c1">#motor specific values</span>
@@ -143,122 +151,63 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">ILerr</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">IRerr</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">totErr</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lastErr</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prev_state</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">LineError</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">c_count</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">estx</span> <span class="o">=</span> <span class="n">estx</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">esty</span> <span class="o">=</span> <span class="n">esty</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">offr</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">offl</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">current_x</span> <span class="o">=</span> <span class="n">current_x</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">current_y</span> <span class="o">=</span> <span class="n">current_y</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_turn</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">init_turn_flag</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">heading</span> <span class="o">=</span> <span class="n">heading</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">IMU</span> <span class="o">=</span> <span class="n">IMU</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_turn_start_heading</span> <span class="o">=</span> <span class="mf">0.0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_segment_start_x</span> <span class="o">=</span> <span class="mf">0.0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_segment_start_y</span> <span class="o">=</span> <span class="mf">0.0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_segment_target</span> <span class="o">=</span> <span class="mf">0.0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_next_state_after_turn</span> <span class="o">=</span> <span class="n">S0_IDLE</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dist</span> <span class="o">=</span> <span class="n">dist</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">accl</span> <span class="o">=</span> <span class="n">accl</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="c1">#track data</span>
+        <span class="c1">#--------------------------------</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tracker</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1">#holds the game state</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wp</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Wthresh</span> <span class="o">=</span> <span class="mi">10</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">point</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trav</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">acclT</span> <span class="o">=</span> <span class="mi">220</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Pthresh</span> <span class="o">=</span> <span class="mf">1.7</span>
+        
+        
+        
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">_line_exit_x_min</span> <span class="o">=</span> <span class="mi">100</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_line_exit_x_max</span> <span class="o">=</span> <span class="mi">150</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_line_exit_y_min</span> <span class="o">=</span> <span class="mi">100</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_line_exit_y_max</span> <span class="o">=</span> <span class="mi">150</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">_forward_after_line_mm</span> <span class="o">=</span> <span class="mf">75.0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_backup_distance_mm</span> <span class="o">=</span> <span class="mf">60.0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_state_est_speed</span> <span class="o">=</span> <span class="mf">30.0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_turn_effort</span> <span class="o">=</span> <span class="mf">25.0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_wall_drive_effort</span> <span class="o">=</span> <span class="mf">22.0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_wall_hit_accel_threshold</span> <span class="o">=</span> <span class="mf">2.5</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_wall_hit_count</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_wall_hit_count_required</span> <span class="o">=</span> <span class="mi">2</span>
-
+        
         <span class="bp">self</span><span class="o">.</span><span class="n">sens</span> <span class="o">=</span> <span class="n">linesen</span><span class="o">.</span><span class="n">sensor</span><span class="p">(</span><span class="n">Pin</span><span class="o">.</span><span class="n">cpu</span><span class="o">.</span><span class="n">A6</span><span class="p">,</span><span class="n">Pin</span><span class="o">.</span><span class="n">cpu</span><span class="o">.</span><span class="n">A7</span><span class="p">,</span>
                                   <span class="n">Pin</span><span class="o">.</span><span class="n">cpu</span><span class="o">.</span><span class="n">B6</span><span class="p">,</span>
                                   <span class="n">Pin</span><span class="o">.</span><span class="n">cpu</span><span class="o">.</span><span class="n">C7</span><span class="p">,</span><span class="n">Pin</span><span class="o">.</span><span class="n">cpu</span><span class="o">.</span><span class="n">A9</span><span class="p">)</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">_reset_motion_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&#39;&#39;&#39;Stops the robot and clears controller accumulators used across states.&#39;&#39;&#39;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">L_err</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">R_err</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">ILerr</span> <span class="o">=</span> <span class="mf">0.0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">IRerr</span> <span class="o">=</span> <span class="mf">0.0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">totErr</span> <span class="o">=</span> <span class="mf">0.0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_Kpleft</span> <span class="o">=</span> <span class="mf">0.0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_Kpright</span> <span class="o">=</span> <span class="mf">0.0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_Kileft</span> <span class="o">=</span> <span class="mf">0.0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_Kiright</span> <span class="o">=</span> <span class="mf">0.0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">init_turn_flag</span> <span class="o">=</span> <span class="kc">False</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_wall_hit_count</span> <span class="o">=</span> <span class="mi">0</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">_start_distance_segment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">distance_mm</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&#39;&#39;&#39;Captures the starting pose for a distance-based maneuver.&#39;&#39;&#39;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_segment_start_x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_x</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_segment_start_y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_y</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_segment_target</span> <span class="o">=</span> <span class="n">distance_mm</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">_distance_traveled</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&#39;&#39;&#39;Returns the planar distance traveled since the active segment started.&#39;&#39;&#39;</span>
-        <span class="n">dx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_x</span><span class="o">.</span><span class="n">get</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_segment_start_x</span>
-        <span class="n">dy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_y</span><span class="o">.</span><span class="n">get</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_segment_start_y</span>
-        <span class="k">return</span> <span class="p">(</span><span class="n">dx</span> <span class="o">*</span> <span class="n">dx</span> <span class="o">+</span> <span class="n">dy</span> <span class="o">*</span> <span class="n">dy</span><span class="p">)</span> <span class="o">**</span> <span class="mf">0.5</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">_normalized_heading_delta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">current_heading</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&#39;&#39;&#39;Wrap heading error into [-180, 180] so turns behave through heading rollover.&#39;&#39;&#39;</span>
-        <span class="n">delta</span> <span class="o">=</span> <span class="n">current_heading</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_turn_start_heading</span>
-        <span class="k">while</span> <span class="n">delta</span> <span class="o">&gt;</span> <span class="mi">180</span><span class="p">:</span>
-            <span class="n">delta</span> <span class="o">-=</span> <span class="mi">360</span>
-        <span class="k">while</span> <span class="n">delta</span> <span class="o">&lt;</span> <span class="o">-</span><span class="mi">180</span><span class="p">:</span>
-            <span class="n">delta</span> <span class="o">+=</span> <span class="mi">360</span>
-        <span class="k">return</span> <span class="n">delta</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">_wall_hit_detected</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&#39;&#39;&#39;Uses linear acceleration to detect a collision with the wall.&#39;&#39;&#39;</span>
-        <span class="n">lin_x</span><span class="p">,</span> <span class="n">lin_y</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">IMU</span><span class="o">.</span><span class="n">get_linear_accel_mps2</span><span class="p">()</span>
-        <span class="n">accel_mag</span> <span class="o">=</span> <span class="p">(</span><span class="n">lin_x</span> <span class="o">*</span> <span class="n">lin_x</span> <span class="o">+</span> <span class="n">lin_y</span> <span class="o">*</span> <span class="n">lin_y</span><span class="p">)</span> <span class="o">**</span> <span class="mf">0.5</span>
-        <span class="k">if</span> <span class="n">accel_mag</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wall_hit_accel_threshold</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_wall_hit_count</span> <span class="o">+=</span> <span class="mi">1</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_wall_hit_count</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wall_hit_count</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wall_hit_count_required</span>
-
+        
 <div class="viewcode-block" id="task_controller.run">
 <a class="viewcode-back" href="../api.html#task_controller.task_controller.run">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">        Runs the task_controller class as a Finite State Machine with states for idle, step, line, state estimation, and turn.</span>
-<span class="sd">        :param: None</span>
-<span class="sd">        :returns: None</span>
-<span class="sd">        &#39;&#39;&#39;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Run one iteration of the controller state machine.</span>
+
+<span class="sd">        Yields:</span>
+<span class="sd">            int: The current controller state identifier.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="c1"># When entering a new closed-loop state, reset integral/counters</span>
+            <span class="c1"># so old accumulated error doesn&#39;t bias the new behavior.</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prev_state</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">S4_POINT</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">S5_DIST</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">totErr</span> <span class="o">=</span> <span class="mf">0.0</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">lastErr</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">prev_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span>
 <span class="c1">#==============================================================================</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">S0_IDLE</span><span class="p">:</span>
-<span class="w">                </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">                State 0: Idle</span>
-<span class="sd">                The robot is idle and waiting for the start flag to be true and the line flag to be true.</span>
-<span class="sd">                If the start flag is true and the line flag is true, the robot will transition to state 2, line following.</span>
-<span class="sd">                If the start flag is true and the line flag is false, the robot will transition to state 1, positional setpoint control.</span>
-<span class="sd">                &#39;&#39;&#39;</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="o">.</span><span class="n">get</span><span class="p">()</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">line</span><span class="o">.</span><span class="n">get</span><span class="p">():</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">S2_LINE</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">S6_HUB</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">c_count</span> <span class="o">=</span> <span class="mi">0</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_reset_motion_state</span><span class="p">()</span>
                 <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="o">.</span><span class="n">get</span><span class="p">():</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">S1_STEP</span>
 <span class="c1">#==============================================================================</span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">S1_STEP</span><span class="p">:</span>
-<span class="w">                </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">                State 1: Positional Setpoint Control</span>
-<span class="sd">                The robot is in positional setpoint control and waiting for the start flag to be false.</span>
-<span class="sd">                If the start flag is false, the robot will transition to state 0, idle.</span>
-<span class="sd">                If the start flag is true, the robot will continue to control the motors to the setpoint.</span>
-<span class="sd">                The robot will calculate the error between the setpoint and the current position of the motors.</span>
-<span class="sd">                The robot will then calculate the proportional and integral terms of the error.</span>
-<span class="sd">                The robot will then calculate the effort for the left and right motors.</span>
-<span class="sd">                The robot will then set the effort for the left and right motors.</span>
-<span class="sd">                The robot will then put the effort for the left and right motors into the left and right error queues.</span>
-<span class="sd">                &#39;&#39;&#39;</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="o">.</span><span class="n">get</span><span class="p">():</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">S0_IDLE</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">ILerr</span> <span class="o">=</span> <span class="mf">0.0</span>
@@ -291,28 +240,20 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">R_err</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">effort_R</span><span class="p">)</span>
 <span class="c1">#==============================================================================</span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">S2_LINE</span><span class="p">:</span>
-<span class="w">                </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">                State 2: Line Following</span>
-<span class="sd">                The robot is in line following and waiting for the start flag to be false.</span>
-<span class="sd">                If the start flag is false, the robot will transition to state 0, idle.</span>
-<span class="sd">                If the start flag is true, the robot will continue to control the motors to the line sensor inputs.</span>
-<span class="sd">                The robot will calculate the error between the line sensor inputs and the setpoint.</span>
-<span class="sd">                The robot will then calculate the proportional and integral terms of the error.</span>
-<span class="sd">                The robot will then calculate the effort for the left and right motors.</span>
-<span class="sd">                The robot will then set the effort for the left and right motors.</span>
-<span class="sd">                The robot will then put the effort for the left and right motors into the left and right error queues.</span>
-<span class="sd">                The robot will then transition to state 3, state estimation, if the robot is within the waypoint range (determined from encoders).</span>
-<span class="sd">                The robot will then transition to state 0, idle, if the start flag is false.</span>
-<span class="sd">                &#39;&#39;&#39;</span>
                 
                 <span class="c1">#get values from elsewhere </span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">c_count</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">ticks_ms</span><span class="p">()</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">c_count</span> <span class="o">=</span> <span class="mi">1</span>
 
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sens</span><span class="o">.</span><span class="n">get_pos</span><span class="p">()</span> <span class="o">!=</span> <span class="mi">100</span><span class="p">:</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">LineError</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sens</span><span class="o">.</span><span class="n">get_pos</span><span class="p">()</span>
-                <span class="n">error</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">LineError</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tracker</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">error</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sens</span><span class="o">.</span><span class="n">get_pos</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="n">error</span> <span class="o">==</span> <span class="mi">100</span><span class="p">:</span>
+                        <span class="n">error</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sens</span><span class="o">.</span><span class="n">get_pos</span><span class="p">()</span> <span class="o">!=</span> <span class="mi">100</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">lineError</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sens</span><span class="o">.</span><span class="n">get_pos</span><span class="p">()</span>
+                    <span class="n">error</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lineError</span>
 
                 <span class="c1"># add error to centroid queue and time to time queue</span>
                 <span class="c1"># time_elapsed = time.ticks_diff(time.ticks_ms(), self._start_time)</span>
@@ -321,6 +262,7 @@
 
                 <span class="n">Kp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Kp</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
                 <span class="n">Ki</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Ki</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+            
                 
                 <span class="c1">#set base speeds</span>
                 <span class="n">leff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">speed</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
@@ -336,128 +278,176 @@
                 <span class="n">reff</span> <span class="o">-=</span> <span class="n">error</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">L_err</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">leff</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">R_err</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">reff</span><span class="p">)</span>
-
-                <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_line_exit_x_min</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_x</span><span class="o">.</span><span class="n">get</span><span class="p">()</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_line_exit_x_max</span> <span class="ow">and</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">_line_exit_y_min</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_y</span><span class="o">.</span><span class="n">get</span><span class="p">()</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_line_exit_y_max</span><span class="p">):</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">line</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_start_distance_segment</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_forward_after_line_mm</span><span class="p">)</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">S3_state_estimation</span>
                 
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="o">.</span><span class="n">get</span><span class="p">()</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_reset_motion_state</span><span class="p">()</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">S0_IDLE</span>
-<span class="c1">#==============================================================================</span>
-            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">S3_state_estimation</span><span class="p">:</span>
-<span class="w">                </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">                State 3: State Estimation</span>
-<span class="sd">                The robot is in state estimation and waiting for the start flag to be false.</span>
-<span class="sd">                If the start flag is false, the robot will transition to state 0, idle.</span>
-<span class="sd">                If the start flag is true, the robot will continue to estimate the state of the robot.</span>
-<span class="sd">                The robot will calculate the error between the estimated x and y position and the waypoint.</span>
-<span class="sd">                The robot will then calculate the proportional and integral terms of the error.</span>
-<span class="sd">                The robot will then calculate the effort for the left and right motors.</span>
-<span class="sd">                The robot will then set the effort for the left and right motors.</span>
-<span class="sd">                The robot will then put the effort for the left and right motors into the left and right error queues.</span>
-<span class="sd">                The robot will then transition to state 4, turn, if the robot is within the turn range.</span>
-<span class="sd">                The robot will then transition to state 0, idle, if the start flag is false.</span>
-<span class="sd">                &#39;&#39;&#39;</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="o">.</span><span class="n">get</span><span class="p">():</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_reset_motion_state</span><span class="p">()</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">S0_IDLE</span>
-                    <span class="k">continue</span>
+                <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_x</span><span class="o">.</span><span class="n">get</span><span class="p">())</span>
+                <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_y</span><span class="o">.</span><span class="n">get</span><span class="p">())</span>
 
-                <span class="bp">self</span><span class="o">.</span><span class="n">L_err</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state_est_speed</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">R_err</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state_est_speed</span><span class="p">)</span>
+                <span class="c1">#print(self.heading.get())</span>
+                
 
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_distance_traveled</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_segment_target</span><span class="p">:</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_reset_motion_state</span><span class="p">()</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">S4_turn</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_turn</span> <span class="o">=</span> <span class="o">-</span><span class="mi">90</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_next_state_after_turn</span> <span class="o">=</span> <span class="n">S5_DRIVE_TO_WALL</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">init_turn_flag</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_x</span><span class="o">.</span><span class="n">get</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">1350</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">speed</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="mi">12</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tracker</span> <span class="o">==</span> <span class="mi">7</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">Wthresh</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_x</span><span class="o">.</span><span class="n">get</span><span class="p">()</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">wp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">Wthresh</span> <span class="ow">and</span> 
+                    <span class="bp">self</span><span class="o">.</span><span class="n">wp</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">Wthresh</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_y</span><span class="o">.</span><span class="n">get</span><span class="p">()</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">wp</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">Wthresh</span><span class="p">):</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">L_err</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">R_err</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">tracker</span> <span class="o">+=</span> <span class="mi">1</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">S6_HUB</span>
 
-<span class="c1">#==============================================================================</span>
-            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">S4_turn</span><span class="p">:</span>
-<span class="w">                </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">                State 4: Turn</span>
-<span class="sd">                The robot is in turn and waiting until the turn is complete.</span>
-<span class="sd">                The robot will then transition to state 3, state estimation, once turn is complete</span>
-<span class="sd">                &#39;&#39;&#39;</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="o">.</span><span class="n">get</span><span class="p">():</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_reset_motion_state</span><span class="p">()</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">S0_IDLE</span>
-                    <span class="k">continue</span>
-
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_turn_flag</span><span class="p">:</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_turn_start_heading</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">heading</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">init_turn_flag</span> <span class="o">=</span> <span class="kc">False</span>
-
-                <span class="n">heading_delta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_normalized_heading_delta</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">heading</span><span class="o">.</span><span class="n">get</span><span class="p">())</span>
-
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_turn</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">L_err</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_turn_effort</span><span class="p">)</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">R_err</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">_turn_effort</span><span class="p">)</span>
-                    <span class="k">if</span> <span class="n">heading_delta</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_turn</span><span class="p">:</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">_reset_motion_state</span><span class="p">()</span>
-                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_next_state_after_turn</span> <span class="o">==</span> <span class="n">S2_LINE</span><span class="p">:</span>
-                            <span class="bp">self</span><span class="o">.</span><span class="n">line</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
-                            <span class="bp">self</span><span class="o">.</span><span class="n">c_count</span> <span class="o">=</span> <span class="mi">0</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_next_state_after_turn</span>
-                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_turn</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">L_err</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">_turn_effort</span><span class="p">)</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">R_err</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_turn_effort</span><span class="p">)</span>
-                    <span class="k">if</span> <span class="n">heading_delta</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_turn</span><span class="p">:</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">_reset_motion_state</span><span class="p">()</span>
-                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_next_state_after_turn</span> <span class="o">==</span> <span class="n">S2_LINE</span><span class="p">:</span>
-                            <span class="bp">self</span><span class="o">.</span><span class="n">line</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
-                            <span class="bp">self</span><span class="o">.</span><span class="n">c_count</span> <span class="o">=</span> <span class="mi">0</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_next_state_after_turn</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_reset_motion_state</span><span class="p">()</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_next_state_after_turn</span>
-
+                    <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wp</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">Wthresh</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_y</span><span class="o">.</span><span class="n">get</span><span class="p">()</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">wp</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">Wthresh</span><span class="p">):</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">L_err</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">R_err</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">tracker</span> <span class="o">+=</span> <span class="mi">1</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">S6_HUB</span>
+                    
+                
+                <span class="c1"># if self.start.get() == False:</span>
+                <span class="c1">#     self.L_err.put(0)</span>
+                <span class="c1">#     self.R_err.put(0)</span>
+                <span class="c1">#     self.totErr = 0.0</span>
+                <span class="c1">#     self.state = S0_IDLE                   </span>
 <span class="c1">#==============================================================================</span>
-            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">S5_DRIVE_TO_WALL</span><span class="p">:</span>
-<span class="w">                </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">                State 5: Drive To Wall</span>
-<span class="sd">                The robot drives straight until a wall impact is detected from the IMU</span>
-<span class="sd">                linear acceleration estimate.</span>
-<span class="sd">                &#39;&#39;&#39;</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="o">.</span><span class="n">get</span><span class="p">():</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_reset_motion_state</span><span class="p">()</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">S0_IDLE</span>
-                    <span class="k">continue</span>
-
-                <span class="bp">self</span><span class="o">.</span><span class="n">L_err</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_wall_drive_effort</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">R_err</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_wall_drive_effort</span><span class="p">)</span>
-
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wall_hit_detected</span><span class="p">():</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_reset_motion_state</span><span class="p">()</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_start_distance_segment</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_backup_distance_mm</span><span class="p">)</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">S6_BACK_UP</span>
-
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">S4_POINT</span><span class="p">:</span>
+                <span class="c1">#Go to this state when you set point and want to point to an angle</span>
+                
+                <span class="n">error</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">heading</span><span class="o">.</span><span class="n">get</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">point</span><span class="p">)</span>
+                <span class="k">if</span> <span class="p">(</span><span class="mi">0</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">point</span> <span class="o">&lt;</span> <span class="mi">2</span> <span class="ow">or</span> <span class="mi">358</span><span class="o">&lt;</span><span class="bp">self</span><span class="o">.</span><span class="n">point</span><span class="o">&lt;</span><span class="mi">360</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">abs</span><span class="p">(</span><span class="n">error</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">180</span><span class="p">:</span>
+                    <span class="n">error</span> <span class="o">=</span> <span class="n">error</span><span class="o">-</span><span class="mi">360</span>
+                
+                <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">error</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">180</span><span class="p">:</span>
+                    <span class="n">error</span> <span class="o">=</span> <span class="o">-</span><span class="n">error</span>
+                    
+                
+                
+                <span class="n">Perr</span> <span class="o">=</span> <span class="n">error</span> <span class="o">*</span> <span class="mf">.5</span> <span class="c1">#KP</span>
+                <span class="n">clamp</span> <span class="o">=</span> <span class="mi">60</span>
+                <span class="k">if</span> <span class="n">Perr</span> <span class="o">&gt;</span> <span class="n">clamp</span><span class="p">:</span>
+                    <span class="n">Perr</span> <span class="o">=</span> <span class="n">clamp</span>
+                <span class="k">elif</span> <span class="n">Perr</span> <span class="o">&lt;</span> <span class="o">-</span><span class="n">clamp</span><span class="p">:</span>
+                    <span class="n">Perr</span> <span class="o">=</span> <span class="o">-</span><span class="n">clamp</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">totErr</span> <span class="o">+=</span> <span class="n">error</span> <span class="o">*</span><span class="mf">0.05</span>
+                <span class="n">windup</span> <span class="o">=</span> <span class="mi">40</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">totErr</span> <span class="o">&gt;</span> <span class="n">windup</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">totErr</span> <span class="o">=</span> <span class="n">windup</span>
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">totErr</span> <span class="o">&lt;</span> <span class="o">-</span><span class="n">windup</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">totErr</span> <span class="o">=</span> <span class="o">-</span><span class="n">windup</span>
+                <span class="n">Ierr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">totErr</span> <span class="o">*</span> <span class="mf">.6</span> <span class="c1">#KI</span>
+                
+                <span class="n">Derr</span> <span class="o">=</span> <span class="p">(</span><span class="n">error</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">lastErr</span><span class="p">)</span> <span class="o">*</span> <span class="mf">.2</span>
+                
+                <span class="n">eff</span> <span class="o">=</span> <span class="n">Perr</span> <span class="o">+</span> <span class="n">Ierr</span> <span class="o">-</span> <span class="n">Derr</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">lastErr</span> <span class="o">=</span> <span class="n">error</span>
+                
+                <span class="bp">self</span><span class="o">.</span><span class="n">L_err</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="o">-</span><span class="n">eff</span><span class="o">*</span><span class="mf">0.4</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">R_err</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">eff</span><span class="o">*</span><span class="mf">0.45</span><span class="p">)</span>
+                
+                <span class="nb">print</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">heading</span><span class="o">.</span><span class="n">get</span><span class="p">())</span>
+                <span class="c1">#check if within acceptable range                    </span>
+                <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">error</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">Pthresh</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="c1">#exit when acceptable for acceptable time</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">&gt;</span> <span class="mi">10</span><span class="p">:</span> <span class="c1">#placeholder threshold</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">tracker</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">S6_HUB</span>
 <span class="c1">#==============================================================================</span>
-            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">S6_BACK_UP</span><span class="p">:</span>
-<span class="w">                </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">                State 6: Back Up</span>
-<span class="sd">                The robot backs away from the wall, then turns left and resumes line</span>
-<span class="sd">                following.</span>
-<span class="sd">                &#39;&#39;&#39;</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="o">.</span><span class="n">get</span><span class="p">():</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_reset_motion_state</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">S5_DIST</span><span class="p">:</span>
+                <span class="n">error</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dist</span><span class="o">.</span><span class="n">get</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">trav</span><span class="p">)</span>
+                
+                <span class="n">Perr</span> <span class="o">=</span> <span class="n">error</span> <span class="o">*</span> <span class="mi">1</span> <span class="c1"># KP</span>
+                <span class="c1">#clamp P error</span>
+                <span class="n">clamp</span> <span class="o">=</span> <span class="mi">20</span>
+                <span class="k">if</span> <span class="n">Perr</span> <span class="o">&gt;</span> <span class="n">clamp</span><span class="p">:</span>
+                    <span class="n">Perr</span> <span class="o">=</span> <span class="n">clamp</span>
+                <span class="k">elif</span> <span class="n">Perr</span> <span class="o">&lt;</span> <span class="o">-</span><span class="n">clamp</span><span class="p">:</span>
+                    <span class="n">Perr</span> <span class="o">=</span> <span class="o">-</span><span class="n">clamp</span>
+                    
+                <span class="bp">self</span><span class="o">.</span><span class="n">totErr</span> <span class="o">+=</span> <span class="n">error</span> <span class="o">*</span><span class="mf">0.05</span>
+                <span class="c1">#reduce windup</span>
+                <span class="n">windup</span> <span class="o">=</span> <span class="mi">80</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">totErr</span> <span class="o">&gt;</span> <span class="n">windup</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">totErr</span> <span class="o">=</span> <span class="n">windup</span>
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">totErr</span> <span class="o">&lt;</span> <span class="o">-</span><span class="n">windup</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">totErr</span> <span class="o">=</span> <span class="o">-</span><span class="n">windup</span>
+                <span class="n">Ierr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">totErr</span> <span class="o">*</span> <span class="mf">.3</span> <span class="c1">#KI</span>
+                
+                <span class="n">Derr</span> <span class="o">=</span> <span class="p">(</span><span class="n">error</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">lastErr</span><span class="p">)</span> <span class="o">*</span> <span class="mf">.1</span> <span class="c1">#KD</span>
+                
+                
+                <span class="n">eff</span> <span class="o">=</span> <span class="n">Perr</span> <span class="o">+</span> <span class="n">Ierr</span> <span class="o">-</span> <span class="n">Derr</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">lastErr</span> <span class="o">=</span> <span class="n">error</span>
+                
+                <span class="c1">#correct for inconsistent motors</span>
+                <span class="n">diff</span> <span class="o">=</span> <span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">L_pos</span><span class="o">.</span><span class="n">get</span><span class="p">()</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">offl</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">R_pos</span><span class="o">.</span><span class="n">get</span><span class="p">()</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">offr</span><span class="p">))</span> <span class="o">*</span> <span class="mf">.1</span>
+                
+                <span class="bp">self</span><span class="o">.</span><span class="n">L_err</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="o">-</span><span class="n">eff</span><span class="o">*</span><span class="mf">0.35</span><span class="o">-</span><span class="n">diff</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">R_err</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="o">-</span><span class="n">eff</span><span class="o">*</span><span class="mf">0.35</span><span class="o">+</span><span class="n">diff</span><span class="p">)</span>
+                
+                <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dist</span><span class="o">.</span><span class="n">get</span><span class="p">())</span>
+                <span class="c1"># #check if within acceptable range</span>
+                <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">error</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">10</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="c1">#exit when acceptable for acceptable time</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">&gt;</span> <span class="mi">20</span><span class="p">:</span> <span class="c1">#placeholder threshold</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">tracker</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">S6_HUB</span>                
+<span class="c1">#==============================================================================</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">S6_HUB</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">offr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_pos</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">offl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">L_pos</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tracker</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span> <span class="c1"># line follow </span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">Wthresh</span> <span class="o">=</span> <span class="mi">5</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">wp</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1780</span><span class="p">,</span> <span class="mi">410</span><span class="p">]</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">S2_LINE</span>
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">tracker</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span> <span class="c1">#turn in garage</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">S4_POINT</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">point</span> <span class="o">=</span> <span class="mf">0.5</span>
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">tracker</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span> <span class="c1"># drive until bump</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">S7_FEEL</span>
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">tracker</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span> <span class="c1">#bump reset</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">trav</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dist</span><span class="o">.</span><span class="n">get</span><span class="p">()</span> <span class="o">+</span> <span class="mi">50</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">S5_DIST</span>
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">tracker</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span> <span class="c1">#turn out of garage</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">Pthresh</span> <span class="o">=</span> <span class="mi">2</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">point</span> <span class="o">=</span> <span class="mi">90</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">S4_POINT</span>
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">tracker</span> <span class="o">==</span> <span class="mi">5</span><span class="p">:</span> <span class="c1">#line follow out</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">wp</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">950</span><span class="p">]</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">S2_LINE</span>
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">tracker</span> <span class="o">==</span> <span class="mi">6</span><span class="p">:</span> <span class="c1"># turn once more </span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">Pthresh</span> <span class="o">=</span> <span class="mi">2</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">point</span> <span class="o">=</span> <span class="mi">180</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">S4_POINT</span>
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">tracker</span> <span class="o">==</span> <span class="mi">7</span><span class="p">:</span> <span class="c1">#big line follow </span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">Wthresh</span> <span class="o">=</span> <span class="mi">20</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">S2_LINE</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">wp</span> <span class="o">=</span> <span class="p">[</span><span class="mi">260</span><span class="p">,</span><span class="mi">400</span><span class="p">]</span>
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">tracker</span> <span class="o">==</span> <span class="mi">8</span><span class="p">:</span> <span class="c1">#point to end</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">Pthresh</span> <span class="o">=</span> <span class="mf">1.7</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">point</span> <span class="o">=</span> <span class="mi">45</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">S4_POINT</span>
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">tracker</span> <span class="o">==</span> <span class="mi">9</span><span class="p">:</span> <span class="c1">#go to end</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">trav</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dist</span><span class="o">.</span><span class="n">get</span><span class="p">()</span> <span class="o">-</span> <span class="mi">550</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">S5_DIST</span>
+                <span class="k">else</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">S0_IDLE</span>
-                    <span class="k">continue</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+<span class="c1">#==============================================================================                                 </span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">S7_FEEL</span><span class="p">:</span>
+                <span class="n">diff</span> <span class="o">=</span> <span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">L_pos</span><span class="o">.</span><span class="n">get</span><span class="p">()</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">offl</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">R_pos</span><span class="o">.</span><span class="n">get</span><span class="p">()</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">offr</span><span class="p">))</span> <span class="o">*</span> <span class="mf">.1</span>
 
-                <span class="bp">self</span><span class="o">.</span><span class="n">L_err</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">_state_est_speed</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">R_err</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">_state_est_speed</span><span class="p">)</span>
-
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_distance_traveled</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_segment_target</span><span class="p">:</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_reset_motion_state</span><span class="p">()</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">S4_turn</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_turn</span> <span class="o">=</span> <span class="mi">90</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_next_state_after_turn</span> <span class="o">=</span> <span class="n">S2_LINE</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">init_turn_flag</span> <span class="o">=</span> <span class="kc">True</span>
-              
+                <span class="bp">self</span><span class="o">.</span><span class="n">L_err</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="o">-</span><span class="mi">30</span><span class="o">-</span><span class="n">diff</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">R_err</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="o">-</span><span class="mi">30</span><span class="o">+</span><span class="n">diff</span><span class="p">)</span>
+                <span class="c1">#print(self.accl.get())</span>
+                <span class="k">if</span>   <span class="nb">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">accl</span><span class="o">.</span><span class="n">get</span><span class="p">())</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">acclT</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">L_err</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">R_err</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                    <span class="c1">#-------------------</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">tracker</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">S6_HUB</span>
 <span class="c1">#==============================================================================</span>
             <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span></div>
 </div>

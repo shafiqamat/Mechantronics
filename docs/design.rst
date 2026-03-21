@@ -19,9 +19,9 @@ Each of the above hardware components are controlled using drivers we created
 - :ref:`Motor driver <motor_module>`
 - :ref:`Encoder driver <encoder_module>`
 - :ref:`IMU driver <IMU_driver_module>`
-* IR sensor array is a digital sensor array that is implemented directly in the 'controller task <task_controller_module>` rather than a driver.
+- The IR sensor array is implemented directly in the :ref:`controller task <task_controller_module>` rather than as a standalone driver.
 
-Implemenation
+Implementation
 ---------------
 
 The robot integrates these drivers into a Finite State Machine which controls the robot's behavior. These are

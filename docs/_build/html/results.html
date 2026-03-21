@@ -9,6 +9,7 @@
   <title>Results &mdash; Mechatronics final 1 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=2970a53a" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
@@ -20,7 +21,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="API Reference" href="api.html" />
-    <link rel="prev" title="Design" href="design.html" /> 
+    <link rel="prev" title="Task Diagrams and Finite State Machines Diagrams" href="diagrams.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -46,10 +47,11 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="overview.html">Project Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="design.html">Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="diagrams.html">Task Diagrams and Finite State Machines Diagrams</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Results</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#goals">Goals</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#initial-line-following-testing">Initial Line Following Testing:</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#demo-video">Demo Video</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#final-video">Final Video</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
@@ -105,30 +107,28 @@
 <section id="initial-line-following-testing">
 <h2>Initial Line Following Testing:<a class="headerlink" href="#initial-line-following-testing" title="Link to this heading"></a></h2>
 <p>We initially tested the line following capabilities of the robot by following a circular track. The user
-would input a speed and a gain for the PI controller. The robot would then follow a line at the given
+would input a speed and a gain for the PI controller for line following. The robot would then follow a line at the given
 speed and gain.</p>
-<a class="reference internal image-reference" href="_static/initial_line_following.jpg"><img alt="Circular Track Photo" src="_static/initial_line_following.jpg" style="width: 500px;" />
+<a class="reference internal image-reference" href="_images/circulartrack.jpg"><img alt="Circular Track Photo" src="_images/circulartrack.jpg" style="width: 500px;" />
 </a>
-<iframe width="560" height="315"
-src="https://www.youtube.com/embed/YOUR_VIDEO_ID"
-frameborder="0" allowfullscreen></iframe><p>Final Track to Navigate:</p>
-<p>We then tested the line following capabilities of the robot by following the given track. We gave the robot
-a default speed of ___ and a gain of ___ for Kp and ___ for Ki for the PI controller.</p>
+<div  class="sphinx-contrib-video-container align-left"><video controls="True" preload="auto"><source src="_images/Romi_circle_follow.mp4" type="video/mp4"></video></div><p>Final Track to Navigate:</p>
+<p>We then tested the line following capabilities of the robot by following the given track.
+We gave the robot a gain of 5 for Kp and 0.3 for Ki for the PI controller for line following.
+For state estimation we utilized a PID controller, with the following gains: 0.5
+for Kp, 0.05 for Ki and .2 for Kd for the heading state estimation. and Kd = 1, Ki = 0.05 and Kd = .1 for the forward state estimation.</p>
 <a class="reference internal image-reference" href="_images/Game_Track.png"><img alt="Track to navigate Photo" src="_images/Game_Track.png" style="width: 500px;" />
 </a>
 </section>
-<section id="demo-video">
-<h2>Demo Video<a class="headerlink" href="#demo-video" title="Link to this heading"></a></h2>
-<iframe width="560" height="315"
-src="https://www.youtube.com/embed/YOUR_VIDEO_ID"
-frameborder="0" allowfullscreen></iframe></section>
+<section id="final-video">
+<h2>Final Video<a class="headerlink" href="#final-video" title="Link to this heading"></a></h2>
+<div  class="sphinx-contrib-video-container align-left"><video controls="True" preload="auto"><source src="_images/finalvideo.mp4" type="video/mp4"></video></div></section>
 </section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="design.html" class="btn btn-neutral float-left" title="Design" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="diagrams.html" class="btn btn-neutral float-left" title="Task Diagrams and Finite State Machines Diagrams" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="api.html" class="btn btn-neutral float-right" title="API Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

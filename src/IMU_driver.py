@@ -143,11 +143,10 @@ class BNO055:
         return mode
 #==============================================================================
     def cal_status(self):
-        '''
-        returns a string that classifies the current calibrations status of the 
-        IMU. Call print on this function to print to terminal, or check to see
-        if status has certian strings inside of it to calibrate without printing
+        """Return a human-readable calibration summary string.
 
+        The returned string reports the calibration state of the overall
+        system, gyroscope, accelerometer, and magnetometer.
         :param: None
         :returns: status (The current calibration status of the IMU)
         :return type: str
@@ -155,7 +154,7 @@ class BNO055:
         - SYSTEM CALIBRAITION COMPLETE: All systems are calibrated.
         - SYSTEM PARTLY CALIBRATED: Some systems are calibrated.
         - SYSTEM NOT CALIBRAITED: No systems are calibrated.
-        '''
+        """
         status = ''
         buff = bytearray(1)
         self.i2c.mem_read(buff,self.address,self.REG_CALIB_STAT)

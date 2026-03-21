@@ -1,8 +1,8 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Feb  5 13:24:14 2026
+"""Closed-loop controller and game-state logic for the Romi robot.
 
-@author: maxwe
+This task contains the position controller used for single-motor testing, the
+line-following controller, and the state-estimation/game-track logic used
+during the final autonomous run.
 """
 from task_share   import Share
 from pyb import Pin
@@ -15,47 +15,47 @@ S0_IDLE  = micropython.const(0)  # State 0 wait for turn
 S1_STEP  = micropython.const(1)  # State 1 positional setpoint controll
 S2_LINE  = micropython.const(2)  # State 2 line following controller
 S3_state_estimation = micropython.const(3)  # State 3 state estimation
-S4_turn = micropython.const(4)  # State 4 turn
-S5_DRIVE_TO_WALL = micropython.const(5)  # State 5 drive forward until wall impact
-S6_BACK_UP = micropython.const(6)  # State 6 back away from wall
+S4_POINT = micropython.const(4) # State 4 point to heading
+S5_DIST  = micropython.const(5) # State 5 straight line distance
+S6_HUB   = micropython.const(6) # State 6 keeps track of the gamestate
+S7_FEEL  = micropython.const(7) # State 7 drive until bump is detected
+
+
+
 
 
 class task_controller:
-    
-    def __init__(self, Kp, Ki, setpoint,speed, start, line, R_pos, R_err, L_pos, L_err,
-                 centroidValues, centroidTime, estx, esty, current_x, current_y, heading, IMU):
-        '''
-        Initializes the task_controller class. Task controller is responsible for how the robot/motors respond to the line sensor inputs.
+    """Controller task for setpoint, line-following, and track navigation."""
 
-        :param: Kp (The proportional gain for the line following controller)
-        :param: Ki (The integral gain for the line following controller)
-        :param: setpoint (The setpoint for the line following controller)
-        :param: speed (The speed for the line following controller)
-        :param: start (The start flag for the line following controller)
-        :param: line (The line flag for the line following controller)
-        :param: R_pos (The right position for the line following controller)
-        :param: R_err (The right error for the line following controller)
-        :param: L_pos (The left position for the line following controller)
-        :param: L_err (The left error for the line following controller)
-        :param: centroidValues (The centroid values for the line following controller)
-        :param: centroidTime (The centroid time for the line following controller)
-        :param: estx (The estimated x position for the line following controller)
-        :param: esty (The estimated y position for the line following controller)
-        :param: current_x (The current x position for the line following controller)
-        :param: current_y (The current y position for the line following controller)
-        :param: heading (The heading for the line following controller)
-        '''
+    def __init__(self, Kp, Ki, setpoint,speed, start, line, R_pos, R_err, L_pos, L_err,
+                 centroidValues, centroidTime, current_x, current_y,heading,dist,accl):
+        """Initialize the controller task and cache all shares and queues.
+
+        Args:
+            Kp: Share containing the proportional gain.
+            Ki: Share containing the integral gain.
+            setpoint: Share containing the position target for motor tests.
+            speed: Share containing the base line-following speed.
+            start: Share used to start or stop the controller flow.
+            line: Share indicating whether line-following mode is active.
+            R_pos: Share containing the right encoder position.
+            R_err: Share used to publish the right motor command.
+            L_pos: Share containing the left encoder position.
+            L_err: Share used to publish the left motor command.
+            centroidValues: Queue reserved for line-following telemetry.
+            centroidTime: Queue reserved for line-following timestamps.
+            current_x: Share containing the estimated x position.
+            current_y: Share containing the estimated y position.
+            heading: Share containing the estimated heading.
+            dist: Share containing the estimated travel distance.
+            accl: Share containing acceleration data from the IMU.
+        """
         #global values
         #--------------------------------       
         self.Kp = Kp
         self.Ki = Ki
-        self._Kpleft = 0.0
-        self._Kpright = 0.0
-        self._Kileft = 0.0
-        self._Kiright = 0.0
         self.setpoint = setpoint
         self.speed = speed
-        self._base_speed = 30
         self.start = start
         self.line = line
         #motor specific values
@@ -73,120 +73,61 @@ class task_controller:
         self.ILerr = 0.0
         self.IRerr = 0.0
         self.totErr = 0.0
+        self.lastErr = 0.0
         self.state = 0
+        self.prev_state = -1
         self.LineError = 0
         self.c_count = 0
-        self.estx = estx
-        self.esty = esty
+        self.offr = 0
+        self.offl = 0
         self.current_x = current_x
         self.current_y = current_y
-        self._turn = 0
-        self.init_turn_flag = False
         self.heading = heading
-        self.IMU = IMU
-        self._turn_start_heading = 0.0
-        self._segment_start_x = 0.0
-        self._segment_start_y = 0.0
-        self._segment_target = 0.0
-        self._next_state_after_turn = S0_IDLE
+        self.dist = dist
+        self.accl = accl
+        self.count = 0
+        #track data
+        #--------------------------------
+        self.tracker = 0  #holds the game state
+        self.wp = [0,0]
+        self.Wthresh = 10
+        self.point = 0
+        self.trav = 0
+        self.acclT = 220
+        self.Pthresh = 1.7
+        
+        
+        
 
-        self._line_exit_x_min = 100
-        self._line_exit_x_max = 150
-        self._line_exit_y_min = 100
-        self._line_exit_y_max = 150
-
-        self._forward_after_line_mm = 75.0
-        self._backup_distance_mm = 60.0
-        self._state_est_speed = 30.0
-        self._turn_effort = 25.0
-        self._wall_drive_effort = 22.0
-        self._wall_hit_accel_threshold = 2.5
-        self._wall_hit_count = 0
-        self._wall_hit_count_required = 2
-
+        
         self.sens = linesen.sensor(Pin.cpu.A6,Pin.cpu.A7,
                                   Pin.cpu.B6,
                                   Pin.cpu.C7,Pin.cpu.A9)
-
-    def _reset_motion_state(self):
-        '''Stops the robot and clears controller accumulators used across states.'''
-        self.L_err.put(0)
-        self.R_err.put(0)
-        self.ILerr = 0.0
-        self.IRerr = 0.0
-        self.totErr = 0.0
-        self._Kpleft = 0.0
-        self._Kpright = 0.0
-        self._Kileft = 0.0
-        self._Kiright = 0.0
-        self.init_turn_flag = False
-        self._wall_hit_count = 0
-
-    def _start_distance_segment(self, distance_mm):
-        '''Captures the starting pose for a distance-based maneuver.'''
-        self._segment_start_x = self.current_x.get()
-        self._segment_start_y = self.current_y.get()
-        self._segment_target = distance_mm
-
-    def _distance_traveled(self):
-        '''Returns the planar distance traveled since the active segment started.'''
-        dx = self.current_x.get() - self._segment_start_x
-        dy = self.current_y.get() - self._segment_start_y
-        return (dx * dx + dy * dy) ** 0.5
-
-    def _normalized_heading_delta(self, current_heading):
-        '''Wrap heading error into [-180, 180] so turns behave through heading rollover.'''
-        delta = current_heading - self._turn_start_heading
-        while delta > 180:
-            delta -= 360
-        while delta < -180:
-            delta += 360
-        return delta
-
-    def _wall_hit_detected(self):
-        '''Uses linear acceleration to detect a collision with the wall.'''
-        lin_x, lin_y, _ = self.IMU.get_linear_accel_mps2()
-        accel_mag = (lin_x * lin_x + lin_y * lin_y) ** 0.5
-        if accel_mag >= self._wall_hit_accel_threshold:
-            self._wall_hit_count += 1
-        else:
-            self._wall_hit_count = 0
-        return self._wall_hit_count >= self._wall_hit_count_required
-
+        
     def run(self):
-        '''
-        Runs the task_controller class as a Finite State Machine with states for idle, step, line, state estimation, and turn.
-        :param: None
-        :returns: None
-        '''
+        """Run one iteration of the controller state machine.
+
+        Yields:
+            int: The current controller state identifier.
+        """
         while True:
+            # When entering a new closed-loop state, reset integral/counters
+            # so old accumulated error doesn't bias the new behavior.
+            if self.state != self.prev_state:
+                if self.state == S4_POINT or self.state == S5_DIST:
+                    self.totErr = 0.0
+                    self.count = 0
+                    self.lastErr = 0.0
+                self.prev_state = self.state
 #==============================================================================
             if self.state == S0_IDLE:
-                '''
-                State 0: Idle
-                The robot is idle and waiting for the start flag to be true and the line flag to be true.
-                If the start flag is true and the line flag is true, the robot will transition to state 2, line following.
-                If the start flag is true and the line flag is false, the robot will transition to state 1, positional setpoint control.
-                '''
                 if self.start.get() and self.line.get():
-                    self.state = S2_LINE
+                    self.state = S6_HUB
                     self.c_count = 0
-                    self._reset_motion_state()
                 elif self.start.get():
                     self.state = S1_STEP
 #==============================================================================
             elif self.state == S1_STEP:
-                '''
-                State 1: Positional Setpoint Control
-                The robot is in positional setpoint control and waiting for the start flag to be false.
-                If the start flag is false, the robot will transition to state 0, idle.
-                If the start flag is true, the robot will continue to control the motors to the setpoint.
-                The robot will calculate the error between the setpoint and the current position of the motors.
-                The robot will then calculate the proportional and integral terms of the error.
-                The robot will then calculate the effort for the left and right motors.
-                The robot will then set the effort for the left and right motors.
-                The robot will then put the effort for the left and right motors into the left and right error queues.
-                '''
                 if not self.start.get():
                     self.state = S0_IDLE
                     self.ILerr = 0.0
@@ -219,28 +160,20 @@ class task_controller:
                 self.R_err.put(effort_R)
 #==============================================================================
             elif self.state == S2_LINE:
-                '''
-                State 2: Line Following
-                The robot is in line following and waiting for the start flag to be false.
-                If the start flag is false, the robot will transition to state 0, idle.
-                If the start flag is true, the robot will continue to control the motors to the line sensor inputs.
-                The robot will calculate the error between the line sensor inputs and the setpoint.
-                The robot will then calculate the proportional and integral terms of the error.
-                The robot will then calculate the effort for the left and right motors.
-                The robot will then set the effort for the left and right motors.
-                The robot will then put the effort for the left and right motors into the left and right error queues.
-                The robot will then transition to state 3, state estimation, if the robot is within the waypoint range (determined from encoders).
-                The robot will then transition to state 0, idle, if the start flag is false.
-                '''
                 
                 #get values from elsewhere 
                 if self.c_count == 0:
                     self._start_time = time.ticks_ms()
                     self.c_count = 1
 
-                if self.sens.get_pos() != 100:
-                    self.LineError = self.sens.get_pos()
-                error = self.LineError
+                if self.tracker == 0:
+                    error = self.sens.get_pos()
+                    if error == 100:
+                        error = 0
+                else:
+                    if self.sens.get_pos() != 100:
+                        self.lineError = self.sens.get_pos()
+                    error = self.lineError
 
                 # add error to centroid queue and time to time queue
                 # time_elapsed = time.ticks_diff(time.ticks_ms(), self._start_time)
@@ -249,6 +182,7 @@ class task_controller:
 
                 Kp = self.Kp.get()
                 Ki = self.Ki.get()
+            
                 
                 #set base speeds
                 leff = self.speed.get()
@@ -264,128 +198,176 @@ class task_controller:
                 reff -= error
                 self.L_err.put(leff)
                 self.R_err.put(reff)
-
-                if (self._line_exit_x_min <= self.current_x.get() <= self._line_exit_x_max and
-                        self._line_exit_y_min <= self.current_y.get() <= self._line_exit_y_max):
-                    self.line.put(False)
-                    self._start_distance_segment(self._forward_after_line_mm)
-                    self.state = S3_state_estimation
                 
-                if self.start.get() == False:
-                    self._reset_motion_state()
-                    self.state = S0_IDLE
-#==============================================================================
-            elif self.state == S3_state_estimation:
-                '''
-                State 3: State Estimation
-                The robot is in state estimation and waiting for the start flag to be false.
-                If the start flag is false, the robot will transition to state 0, idle.
-                If the start flag is true, the robot will continue to estimate the state of the robot.
-                The robot will calculate the error between the estimated x and y position and the waypoint.
-                The robot will then calculate the proportional and integral terms of the error.
-                The robot will then calculate the effort for the left and right motors.
-                The robot will then set the effort for the left and right motors.
-                The robot will then put the effort for the left and right motors into the left and right error queues.
-                The robot will then transition to state 4, turn, if the robot is within the turn range.
-                The robot will then transition to state 0, idle, if the start flag is false.
-                '''
-                if not self.start.get():
-                    self._reset_motion_state()
-                    self.state = S0_IDLE
-                    continue
+                print(self.current_x.get())
+                print(self.current_y.get())
 
-                self.L_err.put(self._state_est_speed)
-                self.R_err.put(self._state_est_speed)
+                #print(self.heading.get())
+                
 
-                if self._distance_traveled() >= self._segment_target:
-                    self._reset_motion_state()
-                    self.state = S4_turn
-                    self._turn = -90
-                    self._next_state_after_turn = S5_DRIVE_TO_WALL
-                    self.init_turn_flag = True
+                if self.current_x.get() > 1350:
+                    self.speed.put(12)
+                if self.tracker == 7:
+                    if (self.wp[0]+self.Wthresh > self.current_x.get() > self.wp[0]-self.Wthresh and 
+                    self.wp[1]+self.Wthresh > self.current_y.get() > self.wp[1]-self.Wthresh):
+                        self.L_err.put(0)
+                        self.R_err.put(0)
+                        self.tracker += 1
+                        self.state = S6_HUB
 
-#==============================================================================
-            elif self.state == S4_turn:
-                '''
-                State 4: Turn
-                The robot is in turn and waiting until the turn is complete.
-                The robot will then transition to state 3, state estimation, once turn is complete
-                '''
-                if not self.start.get():
-                    self._reset_motion_state()
-                    self.state = S0_IDLE
-                    continue
-
-                if self.init_turn_flag:
-                    self._turn_start_heading = self.heading.get()
-                    self.init_turn_flag = False
-
-                heading_delta = self._normalized_heading_delta(self.heading.get())
-
-                if self._turn > 0:
-                    self.L_err.put(self._turn_effort)
-                    self.R_err.put(-self._turn_effort)
-                    if heading_delta >= self._turn:
-                        self._reset_motion_state()
-                        if self._next_state_after_turn == S2_LINE:
-                            self.line.put(True)
-                            self.c_count = 0
-                        self.state = self._next_state_after_turn
-                elif self._turn < 0:
-                    self.L_err.put(-self._turn_effort)
-                    self.R_err.put(self._turn_effort)
-                    if heading_delta <= self._turn:
-                        self._reset_motion_state()
-                        if self._next_state_after_turn == S2_LINE:
-                            self.line.put(True)
-                            self.c_count = 0
-                        self.state = self._next_state_after_turn
                 else:
-                    self._reset_motion_state()
-                    self.state = self._next_state_after_turn
-
+                    if (self.wp[1]+self.Wthresh > self.current_y.get() > self.wp[1]-self.Wthresh):
+                        self.L_err.put(0)
+                        self.R_err.put(0)
+                        self.tracker += 1
+                        self.state = S6_HUB
+                    
+                
+                # if self.start.get() == False:
+                #     self.L_err.put(0)
+                #     self.R_err.put(0)
+                #     self.totErr = 0.0
+                #     self.state = S0_IDLE                   
 #==============================================================================
-            elif self.state == S5_DRIVE_TO_WALL:
-                '''
-                State 5: Drive To Wall
-                The robot drives straight until a wall impact is detected from the IMU
-                linear acceleration estimate.
-                '''
-                if not self.start.get():
-                    self._reset_motion_state()
-                    self.state = S0_IDLE
-                    continue
-
-                self.L_err.put(self._wall_drive_effort)
-                self.R_err.put(self._wall_drive_effort)
-
-                if self._wall_hit_detected():
-                    self._reset_motion_state()
-                    self._start_distance_segment(self._backup_distance_mm)
-                    self.state = S6_BACK_UP
-
+            elif self.state == S4_POINT:
+                #Go to this state when you set point and want to point to an angle
+                
+                error = (self.heading.get() - self.point)
+                if (0 < self.point < 2 or 358<self.point<360) and abs(error) > 180:
+                    error = error-360
+                
+                if abs(error) > 180:
+                    error = -error
+                    
+                
+                
+                Perr = error * .5 #KP
+                clamp = 60
+                if Perr > clamp:
+                    Perr = clamp
+                elif Perr < -clamp:
+                    Perr = -clamp
+                self.totErr += error *0.05
+                windup = 40
+                if self.totErr > windup:
+                    self.totErr = windup
+                elif self.totErr < -windup:
+                    self.totErr = -windup
+                Ierr = self.totErr * .6 #KI
+                
+                Derr = (error - self.lastErr) * .2
+                
+                eff = Perr + Ierr - Derr
+                self.lastErr = error
+                
+                self.L_err.put(-eff*0.4)
+                self.R_err.put(eff*0.45)
+                
+                print (self.heading.get())
+                #check if within acceptable range                    
+                if abs(error) < self.Pthresh:
+                    self.count += 1
+                #exit when acceptable for acceptable time
+                if self.count > 10: #placeholder threshold
+                    self.count = 0
+                    self.tracker += 1
+                    self.state = S6_HUB
 #==============================================================================
-            elif self.state == S6_BACK_UP:
-                '''
-                State 6: Back Up
-                The robot backs away from the wall, then turns left and resumes line
-                following.
-                '''
-                if not self.start.get():
-                    self._reset_motion_state()
+            elif self.state == S5_DIST:
+                error = (self.dist.get() - self.trav)
+                
+                Perr = error * 1 # KP
+                #clamp P error
+                clamp = 20
+                if Perr > clamp:
+                    Perr = clamp
+                elif Perr < -clamp:
+                    Perr = -clamp
+                    
+                self.totErr += error *0.05
+                #reduce windup
+                windup = 80
+                if self.totErr > windup:
+                    self.totErr = windup
+                elif self.totErr < -windup:
+                    self.totErr = -windup
+                Ierr = self.totErr * .3 #KI
+                
+                Derr = (error - self.lastErr) * .1 #KD
+                
+                
+                eff = Perr + Ierr - Derr
+                self.lastErr = error
+                
+                #correct for inconsistent motors
+                diff = ((self.L_pos.get()-self.offl) - (self.R_pos.get()-self.offr)) * .1
+                
+                self.L_err.put(-eff*0.35-diff)
+                self.R_err.put(-eff*0.35+diff)
+                
+                print(self.dist.get())
+                # #check if within acceptable range
+                if abs(error) < 10:
+                    self.count += 1
+                #exit when acceptable for acceptable time
+                if self.count > 20: #placeholder threshold
+                    self.count = 0
+                    self.tracker += 1
+                    self.state = S6_HUB                
+#==============================================================================
+            elif self.state == S6_HUB:
+                self.offr = self.R_pos.get()
+                self.offl = self.L_pos.get()
+                if self.tracker == 0: # line follow 
+                    self.Wthresh = 5
+                    self.wp = [1780, 410]
+                    self.state = S2_LINE
+                elif self.tracker == 1: #turn in garage
+                    self.state = S4_POINT
+                    self.point = 0.5
+                elif self.tracker == 2: # drive until bump
+                    self.state = S7_FEEL
+                elif self.tracker == 3: #bump reset
+                    self.trav = self.dist.get() + 50
+                    self.state = S5_DIST
+                elif self.tracker == 4: #turn out of garage
+                    self.Pthresh = 2
+                    self.point = 90
+                    self.state = S4_POINT
+                elif self.tracker == 5: #line follow out
+                    self.wp = [0, 950]
+                    self.state = S2_LINE
+                elif self.tracker == 6: # turn once more 
+                    self.Pthresh = 2
+                    self.point = 180
+                    self.state = S4_POINT
+                elif self.tracker == 7: #big line follow 
+                    self.Wthresh = 20
+                    self.state = S2_LINE
+                    self.wp = [260,400]
+                elif self.tracker == 8: #point to end
+                    self.Pthresh = 1.7
+                    self.point = 45
+                    self.state = S4_POINT
+                elif self.tracker == 9: #go to end
+                    self.trav = self.dist.get() - 550
+                    self.state = S5_DIST
+                else:
                     self.state = S0_IDLE
-                    continue
+                    self.start.put(False)
+#==============================================================================                                 
+            elif self.state == S7_FEEL:
+                diff = ((self.L_pos.get()-self.offl) - (self.R_pos.get()-self.offr)) * .1
 
-                self.L_err.put(-self._state_est_speed)
-                self.R_err.put(-self._state_est_speed)
-
-                if self._distance_traveled() >= self._segment_target:
-                    self._reset_motion_state()
-                    self.state = S4_turn
-                    self._turn = 90
-                    self._next_state_after_turn = S2_LINE
-                    self.init_turn_flag = True
-              
+                self.L_err.put(-30-diff)
+                self.R_err.put(-30+diff)
+                #print(self.accl.get())
+                if   abs(self.accl.get()) > self.acclT:
+                    self.L_err.put(0)
+                    self.R_err.put(0)
+                    #-------------------
+                    self.tracker += 1
+                    self.state = S6_HUB
 #==============================================================================
             yield self.state
                 

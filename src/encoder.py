@@ -1,9 +1,4 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Jan 29 12:26:59 2026
-
-@author: maxwe
-"""
+"""Quadrature encoder interface used by the Romi drivetrain."""
 from pyb import Timer
 from time import ticks_us, ticks_diff   # Use to get dt value in update()
 

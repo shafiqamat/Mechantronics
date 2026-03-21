@@ -1,0 +1,249 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>main &mdash; Mechatronics final 1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=2970a53a" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=29a6c3e3"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Mechatronics final
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">Project Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../design.html">Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../diagrams.html">Task Diagrams and Finite State Machines Diagrams</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../results.html">Results</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Mechatronics final</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Module code</a></li>
+      <li class="breadcrumb-item active">main</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for main</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Top-level robot setup and scheduler startup for the Mechatronics project.</span>
+
+<span class="sd">This module wires together the hardware drivers, shared variables, queues, and</span>
+<span class="sd">cooperative tasks used by the Romi robot. When run on the microcontroller, it</span>
+<span class="sd">creates all runtime objects and starts the cooperative scheduler. When imported</span>
+<span class="sd">by Sphinx, the runtime setup is skipped so the module can be documented without</span>
+<span class="sd">starting the robot.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">motor</span><span class="w">        </span><span class="kn">import</span> <span class="n">Motor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">encoder</span><span class="w">      </span><span class="kn">import</span> <span class="n">Encoder</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">IMU_driver</span><span class="w">   </span><span class="kn">import</span> <span class="n">BNO055</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">task_motor</span><span class="w">   </span><span class="kn">import</span> <span class="n">task_motor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">task_user</span><span class="w">    </span><span class="kn">import</span> <span class="n">task_user</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">task_controller</span><span class="w"> </span><span class="kn">import</span> <span class="n">task_controller</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">task_observer</span><span class="w"> </span><span class="kn">import</span> <span class="n">task_observer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">task_share</span><span class="w">   </span><span class="kn">import</span> <span class="n">Share</span><span class="p">,</span> <span class="n">Queue</span><span class="p">,</span> <span class="n">show_all</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cotask</span><span class="w">       </span><span class="kn">import</span> <span class="n">Task</span><span class="p">,</span> <span class="n">task_list</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">gc</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyb</span><span class="w">          </span><span class="kn">import</span> <span class="n">Pin</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyb</span><span class="w"> </span><span class="kn">import</span> <span class="n">I2C</span>
+
+
+
+<div class="viewcode-block" id="print_ram_usage">
+<a class="viewcode-back" href="../api.html#main.print_ram_usage">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">print_ram_usage</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;RAM&quot;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Print current heap usage (for debugging MemoryError).&quot;&quot;&quot;</span>
+    <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+    <span class="n">alloc</span> <span class="o">=</span> <span class="n">gc</span><span class="o">.</span><span class="n">mem_alloc</span><span class="p">()</span>
+    <span class="n">free</span> <span class="o">=</span> <span class="n">gc</span><span class="o">.</span><span class="n">mem_free</span><span class="p">()</span>
+    <span class="n">total</span> <span class="o">=</span> <span class="n">alloc</span> <span class="o">+</span> <span class="n">free</span>
+    <span class="n">pct</span> <span class="o">=</span> <span class="p">(</span><span class="mi">100</span> <span class="o">*</span> <span class="n">alloc</span> <span class="o">//</span> <span class="n">total</span><span class="p">)</span> <span class="k">if</span> <span class="n">total</span> <span class="k">else</span> <span class="mi">0</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2">: alloc=</span><span class="si">{</span><span class="n">alloc</span><span class="si">}</span><span class="s2"> free=</span><span class="si">{</span><span class="n">free</span><span class="si">}</span><span class="s2"> total=</span><span class="si">{</span><span class="n">total</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">pct</span><span class="si">}</span><span class="s2">% used)&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="main">
+<a class="viewcode-back" href="../api.html#main.main">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Instantiate robot components and run the cooperative scheduler.&quot;&quot;&quot;</span>
+    <span class="c1"># Build all driver objects first</span>
+    <span class="n">leftMotor</span> <span class="o">=</span> <span class="n">Motor</span><span class="p">(</span><span class="n">Pin</span><span class="o">.</span><span class="n">cpu</span><span class="o">.</span><span class="n">B8</span><span class="p">,</span> <span class="n">Pin</span><span class="o">.</span><span class="n">cpu</span><span class="o">.</span><span class="n">B15</span><span class="p">,</span> <span class="n">Pin</span><span class="o">.</span><span class="n">cpu</span><span class="o">.</span><span class="n">B14</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="n">rightMotor</span> <span class="o">=</span> <span class="n">Motor</span><span class="p">(</span><span class="n">Pin</span><span class="o">.</span><span class="n">cpu</span><span class="o">.</span><span class="n">C8</span><span class="p">,</span> <span class="n">Pin</span><span class="o">.</span><span class="n">cpu</span><span class="o">.</span><span class="n">C6</span><span class="p">,</span> <span class="n">Pin</span><span class="o">.</span><span class="n">cpu</span><span class="o">.</span><span class="n">C5</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="c1"># direction=-1 so positive motion gives positive position</span>
+    <span class="n">leftEncoder</span> <span class="o">=</span> <span class="n">Encoder</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">Pin</span><span class="o">.</span><span class="n">cpu</span><span class="o">.</span><span class="n">B5</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">Pin</span><span class="o">.</span><span class="n">cpu</span><span class="o">.</span><span class="n">B4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">direction</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">rightEncoder</span> <span class="o">=</span> <span class="n">Encoder</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">Pin</span><span class="o">.</span><span class="n">cpu</span><span class="o">.</span><span class="n">A0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">Pin</span><span class="o">.</span><span class="n">cpu</span><span class="o">.</span><span class="n">A1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">direction</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">i2c</span> <span class="o">=</span> <span class="n">I2C</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">I2C</span><span class="o">.</span><span class="n">CONTROLLER</span><span class="p">,</span> <span class="n">baudrate</span><span class="o">=</span><span class="mi">100000</span><span class="p">)</span>
+    <span class="n">IMU</span> <span class="o">=</span> <span class="n">BNO055</span><span class="p">(</span><span class="n">i2c</span><span class="p">,</span> <span class="mh">0x28</span><span class="p">)</span>
+
+    <span class="c1"># Build shares and queues</span>
+    <span class="n">setpoint</span> <span class="o">=</span> <span class="n">Share</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;setpoint&quot;</span><span class="p">)</span>
+    <span class="n">gainP</span> <span class="o">=</span> <span class="n">Share</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;preportional gain&quot;</span><span class="p">)</span>
+    <span class="n">gainI</span> <span class="o">=</span> <span class="n">Share</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;intergral gain&quot;</span><span class="p">)</span>
+    <span class="n">R_pos</span> <span class="o">=</span> <span class="n">Share</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;current right value&quot;</span><span class="p">)</span>
+    <span class="n">R_err</span> <span class="o">=</span> <span class="n">Share</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;current right error&quot;</span><span class="p">)</span>
+    <span class="n">L_pos</span> <span class="o">=</span> <span class="n">Share</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;current left value&quot;</span><span class="p">)</span>
+    <span class="n">L_err</span> <span class="o">=</span> <span class="n">Share</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;current left error&quot;</span><span class="p">)</span>
+    <span class="n">speed</span> <span class="o">=</span> <span class="n">Share</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;line follow steady speed&quot;</span><span class="p">)</span>
+
+    <span class="n">start</span> <span class="o">=</span> <span class="n">Share</span><span class="p">(</span><span class="s2">&quot;B&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;start flag&#39;</span><span class="p">)</span>
+    <span class="n">line</span> <span class="o">=</span> <span class="n">Share</span><span class="p">(</span><span class="s2">&quot;B&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;start line follow&quot;</span><span class="p">)</span>
+
+    <span class="n">estx</span> <span class="o">=</span> <span class="n">Queue</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">,</span> <span class="mi">400</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;estimated x position&#39;</span><span class="p">)</span>
+    <span class="n">esty</span> <span class="o">=</span> <span class="n">Queue</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">,</span> <span class="mi">400</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;estimated y position&#39;</span><span class="p">)</span>
+    <span class="n">current_x</span> <span class="o">=</span> <span class="n">Share</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;current x position&#39;</span><span class="p">)</span>
+    <span class="n">current_y</span> <span class="o">=</span> <span class="n">Share</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;current y position&#39;</span><span class="p">)</span>
+    <span class="n">heading</span> <span class="o">=</span> <span class="n">Share</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;current heading&#39;</span><span class="p">)</span>
+    <span class="n">dist</span> <span class="o">=</span> <span class="n">Share</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;absolute distace traveled&#39;</span><span class="p">)</span>
+    <span class="n">accl</span> <span class="o">=</span> <span class="n">Share</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;acclertaion data&#39;</span><span class="p">)</span>
+
+    <span class="n">leftMotorGo</span> <span class="o">=</span> <span class="n">Share</span><span class="p">(</span><span class="s2">&quot;B&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Left Mot. Go Flag&quot;</span><span class="p">)</span>
+    <span class="n">rightMotorGo</span> <span class="o">=</span> <span class="n">Share</span><span class="p">(</span><span class="s2">&quot;B&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Right Mot. Go Flag&quot;</span><span class="p">)</span>
+    <span class="n">startTime</span> <span class="o">=</span> <span class="n">Share</span><span class="p">(</span><span class="s2">&quot;l&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Data collection start time (us)&quot;</span><span class="p">)</span>
+    <span class="n">leftDataValues</span> <span class="o">=</span> <span class="n">Queue</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Left position data&quot;</span><span class="p">)</span>
+    <span class="n">leftTimeValues</span> <span class="o">=</span> <span class="n">Queue</span><span class="p">(</span><span class="s2">&quot;l&quot;</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Left time (us)&quot;</span><span class="p">)</span>
+    <span class="n">rightDataValues</span> <span class="o">=</span> <span class="n">Queue</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Right position data&quot;</span><span class="p">)</span>
+    <span class="n">rightTimeValues</span> <span class="o">=</span> <span class="n">Queue</span><span class="p">(</span><span class="s2">&quot;l&quot;</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Right time (us)&quot;</span><span class="p">)</span>
+    <span class="n">centroidValues</span> <span class="o">=</span> <span class="n">Queue</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">,</span> <span class="mi">400</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;centroid of line follower&#39;</span><span class="p">)</span>
+    <span class="n">centroidTime</span> <span class="o">=</span> <span class="n">Queue</span><span class="p">(</span><span class="s2">&quot;l&quot;</span><span class="p">,</span> <span class="mi">400</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;time of line follow data (us)&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Build task class objects</span>
+    <span class="n">leftMotorTask</span> <span class="o">=</span> <span class="n">task_motor</span><span class="p">(</span>
+        <span class="n">leftMotor</span><span class="p">,</span> <span class="n">leftEncoder</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">startTime</span><span class="p">,</span> <span class="n">line</span><span class="p">,</span>
+        <span class="n">L_pos</span><span class="p">,</span> <span class="n">L_err</span><span class="p">,</span> <span class="n">leftMotorGo</span><span class="p">,</span> <span class="n">leftDataValues</span><span class="p">,</span> <span class="n">leftTimeValues</span>
+    <span class="p">)</span>
+    <span class="n">rightMotorTask</span> <span class="o">=</span> <span class="n">task_motor</span><span class="p">(</span>
+        <span class="n">rightMotor</span><span class="p">,</span> <span class="n">rightEncoder</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">startTime</span><span class="p">,</span> <span class="n">line</span><span class="p">,</span>
+        <span class="n">R_pos</span><span class="p">,</span> <span class="n">R_err</span><span class="p">,</span> <span class="n">rightMotorGo</span><span class="p">,</span> <span class="n">rightDataValues</span><span class="p">,</span> <span class="n">rightTimeValues</span>
+    <span class="p">)</span>
+    <span class="n">controllerTask</span> <span class="o">=</span> <span class="n">task_controller</span><span class="p">(</span>
+        <span class="n">gainP</span><span class="p">,</span> <span class="n">gainI</span><span class="p">,</span> <span class="n">setpoint</span><span class="p">,</span> <span class="n">speed</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">line</span><span class="p">,</span>
+        <span class="n">R_pos</span><span class="p">,</span> <span class="n">R_err</span><span class="p">,</span> <span class="n">L_pos</span><span class="p">,</span> <span class="n">L_err</span><span class="p">,</span> <span class="n">centroidValues</span><span class="p">,</span> <span class="n">centroidTime</span><span class="p">,</span>
+        <span class="n">current_x</span><span class="p">,</span> <span class="n">current_y</span><span class="p">,</span> <span class="n">heading</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">accl</span>
+    <span class="p">)</span>
+    <span class="n">observerTask</span> <span class="o">=</span> <span class="n">task_observer</span><span class="p">(</span>
+        <span class="n">IMU</span><span class="p">,</span> <span class="n">R_pos</span><span class="p">,</span> <span class="n">R_err</span><span class="p">,</span> <span class="n">L_pos</span><span class="p">,</span> <span class="n">L_err</span><span class="p">,</span> <span class="n">estx</span><span class="p">,</span> <span class="n">esty</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span>
+        <span class="n">current_x</span><span class="p">,</span> <span class="n">current_y</span><span class="p">,</span> <span class="n">heading</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">accl</span>
+    <span class="p">)</span>
+    <span class="n">userTask</span> <span class="o">=</span> <span class="n">task_user</span><span class="p">(</span>
+        <span class="n">setpoint</span><span class="p">,</span> <span class="n">gainP</span><span class="p">,</span> <span class="n">gainI</span><span class="p">,</span> <span class="n">speed</span><span class="p">,</span> <span class="n">line</span><span class="p">,</span> <span class="n">leftMotorGo</span><span class="p">,</span> <span class="n">rightMotorGo</span><span class="p">,</span>
+        <span class="n">leftDataValues</span><span class="p">,</span> <span class="n">leftTimeValues</span><span class="p">,</span> <span class="n">rightDataValues</span><span class="p">,</span> <span class="n">rightTimeValues</span><span class="p">,</span>
+        <span class="n">centroidValues</span><span class="p">,</span> <span class="n">centroidTime</span><span class="p">,</span> <span class="n">estx</span><span class="p">,</span> <span class="n">esty</span><span class="p">,</span> <span class="n">startTime</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Add tasks to task list</span>
+    <span class="n">task_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Task</span><span class="p">(</span><span class="n">leftMotorTask</span><span class="o">.</span><span class="n">run</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Left Mot. Task&quot;</span><span class="p">,</span>
+                          <span class="n">priority</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">period</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">profile</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+    <span class="n">task_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Task</span><span class="p">(</span><span class="n">rightMotorTask</span><span class="o">.</span><span class="n">run</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Right Mot. Task&quot;</span><span class="p">,</span>
+                          <span class="n">priority</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">period</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">profile</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+    <span class="n">task_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Task</span><span class="p">(</span><span class="n">controllerTask</span><span class="o">.</span><span class="n">run</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Cont. Task&quot;</span><span class="p">,</span>
+                          <span class="n">priority</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">period</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">profile</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+    <span class="n">task_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Task</span><span class="p">(</span><span class="n">observerTask</span><span class="o">.</span><span class="n">run</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Obsv. Task&quot;</span><span class="p">,</span>
+                          <span class="n">priority</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">period</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">profile</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+    <span class="n">task_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Task</span><span class="p">(</span><span class="n">userTask</span><span class="o">.</span><span class="n">run</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;User Int. Task&quot;</span><span class="p">,</span>
+                          <span class="n">priority</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">period</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">profile</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+
+    <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+    <span class="n">print_ram_usage</span><span class="p">(</span><span class="s2">&quot;RAM at startup&quot;</span><span class="p">)</span>
+
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">task_list</span><span class="o">.</span><span class="n">pri_sched</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">MemoryError</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;MemoryError - RAM usage at failure:&quot;</span><span class="p">)</span>
+            <span class="n">print_ram_usage</span><span class="p">(</span><span class="s2">&quot;  heap&quot;</span><span class="p">)</span>
+            <span class="k">raise</span>
+        <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Program Terminating&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;MemoryError - RAM usage at failure:&quot;</span><span class="p">)</span>
+            <span class="n">print_ram_usage</span><span class="p">(</span><span class="s2">&quot;  heap&quot;</span><span class="p">)</span>
+            <span class="n">leftMotor</span><span class="o">.</span><span class="n">disable</span><span class="p">()</span>
+            <span class="n">rightMotor</span><span class="o">.</span><span class="n">disable</span><span class="p">()</span>
+            <span class="k">break</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">task_list</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">show_all</span><span class="p">())</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Max Soury and Shafiq Amat.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

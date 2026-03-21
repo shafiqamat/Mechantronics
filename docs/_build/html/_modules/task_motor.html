@@ -8,6 +8,7 @@
   <title>task_motor &mdash; Mechatronics final 1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=2970a53a" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
@@ -43,6 +44,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../overview.html">Project Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../design.html">Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../diagrams.html">Task Diagrams and Finite State Machines Diagrams</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../results.html">Results</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api.html">API Reference</a></li>
 </ul>
@@ -72,9 +74,7 @@
            <div itemprop="articleBody">
              
   <h1>Source code for task_motor</h1><div class="highlight"><pre>
-<span></span><span class="sd">&#39;&#39;&#39; This file demonstrates an example motor task using a custom class with a</span>
-<span class="sd">    run method implemented as a generator</span>
-<span class="sd">&#39;&#39;&#39;</span>
+<span></span><span class="sd">&quot;&quot;&quot;Motor-task state machine for encoder sampling and motor actuation.&quot;&quot;&quot;</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">motor</span><span class="w">        </span><span class="kn">import</span> <span class="n">Motor</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">encoder</span><span class="w">      </span><span class="kn">import</span> <span class="n">Encoder</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">task_share</span><span class="w">   </span><span class="kn">import</span> <span class="n">Share</span><span class="p">,</span> <span class="n">Queue</span>
@@ -85,35 +85,31 @@
 <span class="n">S1_WAIT</span> <span class="o">=</span> <span class="n">micropython</span><span class="o">.</span><span class="n">const</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="c1"># State 1 - wait for go command</span>
 <span class="n">S2_RUN</span>  <span class="o">=</span> <span class="n">micropython</span><span class="o">.</span><span class="n">const</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="c1"># State 2 - run closed loop control</span>
 <span class="n">S3_LINE</span> <span class="o">=</span> <span class="n">micropython</span><span class="o">.</span><span class="n">const</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="c1"># State 3 - run line following </span>
-<span class="n">S4_TURN</span> <span class="o">=</span> <span class="n">micropython</span><span class="o">.</span><span class="n">const</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span> <span class="c1"># State 4 - turn</span>
 
 
 <div class="viewcode-block" id="task_motor">
 <a class="viewcode-back" href="../api.html#task_motor.task_motor">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">task_motor</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">    A class that represents a motor task. The task is responsible for reading</span>
-<span class="sd">    data from an encoder, performing closed loop control, and actuating a motor.</span>
-<span class="sd">    Multiple objects of this class can be created to work with multiple motors</span>
-<span class="sd">    and encoders.</span>
-<span class="sd">    &#39;&#39;&#39;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Task that updates one motor/encoder pair within the scheduler.&quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                  <span class="n">mot</span><span class="p">:</span> <span class="n">Motor</span><span class="p">,</span> <span class="n">enc</span><span class="p">:</span> <span class="n">Encoder</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">startTimeRef</span><span class="p">,</span> <span class="n">line</span><span class="p">,</span>
                  <span class="n">pos</span><span class="p">,</span> <span class="n">err</span><span class="p">,</span> <span class="n">go</span><span class="p">,</span> <span class="n">dataValues</span><span class="p">,</span> <span class="n">timeValues</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">        Initializes a motor task object</span>
-<span class="sd">        </span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize a motor task object.</span>
+
 <span class="sd">        Args:</span>
-<span class="sd">            mot (motor_driver): A motor driver object</span>
-<span class="sd">            enc (encoder):      An encoder object</span>
-<span class="sd">            goFlag (Share):     A share object representing a boolean flag to</span>
-<span class="sd">                                start data collection</span>
-<span class="sd">            dataValues (Queue): A queue object used to store collected encoder</span>
-<span class="sd">                                position values</span>
-<span class="sd">            timeValues (Queue): A queue object used to store the time stamps</span>
-<span class="sd">                                associated with the collected encoder data</span>
-<span class="sd">        &#39;&#39;&#39;</span>
+<span class="sd">            mot: Motor driver instance for this side of the robot.</span>
+<span class="sd">            enc: Encoder instance paired with ``mot``.</span>
+<span class="sd">            start: Share used to indicate the motor task is actively running.</span>
+<span class="sd">            startTimeRef: Share containing the reference start time in</span>
+<span class="sd">                microseconds for logged samples.</span>
+<span class="sd">            line: Share indicating whether line-following mode is active.</span>
+<span class="sd">            pos: Share used to publish the latest encoder position.</span>
+<span class="sd">            err: Share containing the commanded motor effort.</span>
+<span class="sd">            go: Share used to arm or stop the task.</span>
+<span class="sd">            dataValues: Queue used to log sampled encoder positions.</span>
+<span class="sd">            timeValues: Queue used to log sampled timestamps.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">:</span> <span class="nb">int</span>        <span class="o">=</span> <span class="n">S0_INIT</span>    <span class="c1"># The present state of the task       </span>
         
@@ -140,9 +136,11 @@
 <div class="viewcode-block" id="task_motor.run">
 <a class="viewcode-back" href="../api.html#task_motor.task_motor.run">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">        Runs one iteration of the task</span>
-<span class="sd">        &#39;&#39;&#39;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Run one iteration of the motor task state machine.</span>
+
+<span class="sd">        Yields:</span>
+<span class="sd">            int: The current motor-task state identifier.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         
         <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
 <span class="c1">#==============================================================================            </span>
@@ -153,6 +151,7 @@
 <span class="c1">#==============================================================================              </span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">==</span> <span class="n">S1_WAIT</span><span class="p">:</span> <span class="c1"># Wait for &quot;go command&quot; state</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_line</span><span class="o">.</span><span class="n">get</span><span class="p">()</span> <span class="o">&amp;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_goFlag</span><span class="o">.</span><span class="n">get</span><span class="p">():</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_enc</span><span class="o">.</span><span class="n">zero</span><span class="p">()</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_start</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S3_LINE</span>                    
             
@@ -205,10 +204,6 @@
                     <span class="bp">self</span><span class="o">.</span><span class="n">_start</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_mot</span><span class="o">.</span><span class="n">set_effort</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S1_WAIT</span>
-                    
-            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">==</span> <span class="n">S4_TURN</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_mot</span><span class="o">.</span><span class="n">set_effort</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_err</span><span class="o">.</span><span class="n">get</span><span class="p">())</span>
-
 <span class="c1">#==============================================================================</span>
                 
             <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span></div>

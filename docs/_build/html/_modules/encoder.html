@@ -8,6 +8,7 @@
   <title>encoder &mdash; Mechatronics final 1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=2970a53a" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
@@ -43,6 +44,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../overview.html">Project Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../design.html">Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../diagrams.html">Task Diagrams and Finite State Machines Diagrams</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../results.html">Results</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api.html">API Reference</a></li>
 </ul>
@@ -72,12 +74,7 @@
            <div itemprop="articleBody">
              
   <h1>Source code for encoder</h1><div class="highlight"><pre>
-<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
-<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">Created on Thu Jan 29 12:26:59 2026</span>
-
-<span class="sd">@author: maxwe</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span></span><span class="sd">&quot;&quot;&quot;Quadrature encoder interface used by the Romi drivetrain.&quot;&quot;&quot;</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pyb</span><span class="w"> </span><span class="kn">import</span> <span class="n">Timer</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">time</span><span class="w"> </span><span class="kn">import</span> <span class="n">ticks_us</span><span class="p">,</span> <span class="n">ticks_diff</span>   <span class="c1"># Use to get dt value in update()</span>
 
@@ -144,21 +141,21 @@
 <div class="viewcode-block" id="Encoder.get_velocity">
 <a class="viewcode-back" href="../api.html#encoder.Encoder.get_velocity">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_velocity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">           :param: None</span>
-<span class="sd">           :returns: The most recently updated value of velocity as determined</span>
-<span class="sd">           within the update() method</span>
-<span class="sd">           &#39;&#39;&#39;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the most recently computed encoder velocity.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            float: Velocity in counts per microsecond.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">delta</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">direction</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span></div>
 
 <div class="viewcode-block" id="Encoder.get_rpm">
 <a class="viewcode-back" href="../api.html#encoder.Encoder.get_rpm">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_rpm</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">           :param: None</span>
-<span class="sd">           :returns: The most recently updated value of RPM as determined</span>
-<span class="sd">           within the update() method in RPM</span>
-<span class="sd">           &#39;&#39;&#39;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the most recently computed shaft speed in RPM.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            float: Motor speed in revolutions per minute.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_velocity</span><span class="p">()</span><span class="o">*</span><span class="mi">60</span><span class="o">*</span><span class="mi">1000000</span><span class="o">/</span><span class="mi">1444</span></div>
 
     

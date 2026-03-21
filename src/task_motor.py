@@ -1,6 +1,4 @@
-''' This file demonstrates an example motor task using a custom class with a
-    run method implemented as a generator
-'''
+"""Motor-task state machine for encoder sampling and motor actuation."""
 from motor        import Motor
 from encoder      import Encoder
 from task_share   import Share, Queue
@@ -11,7 +9,6 @@ S0_INIT = micropython.const(0) # State 0 - initialiation
 S1_WAIT = micropython.const(1) # State 1 - wait for go command
 S2_RUN  = micropython.const(2) # State 2 - run closed loop control
 S3_LINE = micropython.const(3) # State 3 - run line following 
-S4_TURN = micropython.const(4) # State 4 - turn
 
 
 class task_motor:
@@ -25,19 +22,21 @@ class task_motor:
     def __init__(self,
                  mot: Motor, enc: Encoder, start, startTimeRef, line,
                  pos, err, go, dataValues, timeValues):
-        '''
-        Initializes a motor task object
-        
+        """Initialize a motor task object.
+
         Args:
-            mot (motor_driver): A motor driver object
-            enc (encoder):      An encoder object
-            goFlag (Share):     A share object representing a boolean flag to
-                                start data collection
-            dataValues (Queue): A queue object used to store collected encoder
-                                position values
-            timeValues (Queue): A queue object used to store the time stamps
-                                associated with the collected encoder data
-        '''
+            mot: Motor driver instance for this side of the robot.
+            enc: Encoder instance paired with ``mot``.
+            start: Share used to indicate the motor task is actively running.
+            startTimeRef: Share containing the reference start time in
+                microseconds for logged samples.
+            line: Share indicating whether line-following mode is active.
+            pos: Share used to publish the latest encoder position.
+            err: Share containing the commanded motor effort.
+            go: Share used to arm or stop the task.
+            dataValues: Queue used to log sampled encoder positions.
+            timeValues: Queue used to log sampled timestamps.
+        """
 
         self._state: int        = S0_INIT    # The present state of the task       
         
@@ -62,9 +61,11 @@ class task_motor:
         print("Motor Task object instantiated")
         
     def run(self):
-        '''
-        Runs one iteration of the task
-        '''
+        """Run one iteration of the motor task state machine.
+
+        Yields:
+            int: The current motor-task state identifier.
+        """
         
         while True:
 #==============================================================================            
@@ -75,6 +76,7 @@ class task_motor:
 #==============================================================================              
             elif self._state == S1_WAIT: # Wait for "go command" state
                 if self._line.get() & self._goFlag.get():
+                    self._enc.zero()
                     self._start.put(True)
                     self._state = S3_LINE                    
             
@@ -127,10 +129,6 @@ class task_motor:
                     self._start.put(False)
                     self._mot.set_effort(0)
                     self._state = S1_WAIT
-                    
-            elif self._state == S4_TURN:
-                self._mot.set_effort(self._err.get())
-
 #==============================================================================
                 
             yield self._state

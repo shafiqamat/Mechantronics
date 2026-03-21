@@ -1,3 +1,12 @@
+"""Top-level robot setup and scheduler startup for the Mechatronics project.
+
+This module wires together the hardware drivers, shared variables, queues, and
+cooperative tasks used by the Romi robot. When run on the microcontroller, it
+creates all runtime objects and starts the cooperative scheduler. When imported
+by Sphinx, the runtime setup is skipped so the module can be documented without
+starting the robot.
+"""
+
 from motor        import Motor
 from encoder      import Encoder
 from IMU_driver   import BNO055
@@ -8,9 +17,8 @@ from task_observer import task_observer
 from task_share   import Share, Queue, show_all
 from cotask       import Task, task_list
 import gc
-from pyb          import Pin, Timer
+from pyb          import Pin
 from pyb import I2C
-
 
 
 def print_ram_usage(label="RAM"):
@@ -20,6 +28,8 @@ def print_ram_usage(label="RAM"):
     free = gc.mem_free()
     total = alloc + free
     pct = (100 * alloc // total) if total else 0
+    print(f"{label}: alloc={alloc} free={free} total={total} ({pct}% used)")
+
     print(f"{label}: alloc={alloc} free={free} total={total} ({pct}% used)")
 
 # Build all driver objects first
@@ -50,7 +60,9 @@ estx   = Queue("f",400,name='estimated x position')
 esty   = Queue("f",400,name='estimated y position')
 current_x = Share("f", name='current x position')
 current_y = Share("f", name='current y position')
-heading = Share("f", name='heading')
+heading =   Share("f", name='current heading')
+dist      = Share("f", name='absolute distace traveled')
+accl      = Share("f",name='acclertaion data')
 
 leftMotorGo   = Share("B",     name="Left Mot. Go Flag")
 rightMotorGo  = Share("B",     name="Right Mot. Go Flag")
@@ -71,9 +83,9 @@ rightMotorTask = task_motor(rightMotor, rightEncoder, start, startTime, line,
                             R_pos, R_err, rightMotorGo, rightDataValues, rightTimeValues)
 
 controllerTask = task_controller(gainP, gainI, setpoint, speed,start,line,
-                                 R_pos, R_err, L_pos, L_err,centroidValues, centroidTime, estx, esty, current_x, current_y, heading, IMU)
+                                 R_pos, R_err, L_pos, L_err,centroidValues, centroidTime, current_x, current_y,heading,dist,accl)
 
-observerTask  = task_observer(IMU, R_pos, R_err, L_pos, L_err, estx,esty, start, current_x, current_y, heading)
+observerTask  = task_observer(IMU, R_pos, R_err, L_pos, L_err, estx,esty, start, current_x, current_y,heading,dist,accl)
 
 userTask = task_user(setpoint, gainP, gainI, speed, line, leftMotorGo, rightMotorGo,
                      leftDataValues, leftTimeValues, rightDataValues, rightTimeValues, centroidValues, centroidTime,
