@@ -47,7 +47,7 @@ The hardware components are:
 - leftEncoder
 - rightEncoder
 - IMU
-- (line sensor array is initialized in the controller task)
+- digital line sensor (line sensor array is initialized in the controller task)
 
 The Shares and Queues are:
 
