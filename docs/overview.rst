@@ -13,13 +13,13 @@ Project Date
 ------------
 January - March 2026
 
-.. image:: _static/robot_photo.jpg
+.. image:: _static/romi.jpg
    :alt: Robot Photo
    :width: 500px
 
 How our robot works:
 --------------------
-Romi utilizes a PI controller with a digital IR sensor array to follow a line and then uses state 
+Romi utilizes a PID controller with a digital IR sensor array to follow a line and then uses state 
 estimation to avoid obstacles and navigate a maze without using lines. 
 
 Hardware
