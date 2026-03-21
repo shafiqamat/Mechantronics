@@ -10,7 +10,7 @@ This site documents our Mechatronics final project: a MicroPython-based
 line-following robot built around an STM32 Nucleo board, motor encoders,
 an IMU, and an IR sensor array.
 
-github repository: `Here <https://github.com/shafiqamat/Mechantronics.git>`
+github repository: `Here <https://github.com/shafiqamat/Mechantronics.git>`_
 
 Use the sections below to jump into the project overview, design notes,
 results, and generated API reference.
