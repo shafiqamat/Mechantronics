@@ -107,13 +107,15 @@
 <section id="initial-line-following-testing">
 <h2>Initial Line Following Testing:<a class="headerlink" href="#initial-line-following-testing" title="Link to this heading"></a></h2>
 <p>We initially tested the line following capabilities of the robot by following a circular track. The user
-would input a speed and a gain for the PI controller. The robot would then follow a line at the given
+would input a speed and a gain for the PI controller for line following. The robot would then follow a line at the given
 speed and gain.</p>
 <a class="reference internal image-reference" href="_images/circulartrack.jpg"><img alt="Circular Track Photo" src="_images/circulartrack.jpg" style="width: 500px;" />
 </a>
 <div  class="sphinx-contrib-video-container align-left"><video controls="True" preload="auto"><source src="_images/Romi_circle_follow.mp4" type="video/mp4"></video></div><p>Final Track to Navigate:</p>
-<p>We then tested the line following capabilities of the robot by following the given track. We gave the robot
-a default speed of ___ and a gain of 5 for Kp and 0.3 for Ki for the PI controller.</p>
+<p>We then tested the line following capabilities of the robot by following the given track.
+We gave the robot a gain of 5 for Kp and 0.3 for Ki for the PI controller for line following.
+For state estimation we utilized a PID controller, with the following gains: 0.5
+for Kp, 0.05 for Ki and .2 for Kd for the heading state estimation. and Kd = 1, Ki = 0.05 and Kd = .1 for the forward state estimation.</p>
 <a class="reference internal image-reference" href="_images/Game_Track.png"><img alt="Track to navigate Photo" src="_images/Game_Track.png" style="width: 500px;" />
 </a>
 </section>
