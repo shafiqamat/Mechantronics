@@ -74,10 +74,8 @@
            <div itemprop="articleBody">
              
   <h1>Source code for task_user</h1><div class="highlight"><pre>
-<span></span><span class="sd">&#39;&#39;&#39; This file demonstrates an example UI task using a custom class with a</span>
-<span class="sd">    run method implemented as a generator</span>
-<span class="sd">&#39;&#39;&#39;</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">pyb</span><span class="w"> </span><span class="kn">import</span> <span class="n">USB_VCP</span>
+<span></span><span class="sd">&quot;&quot;&quot;Serial user-interface task for tuning, test runs, and data logging.&quot;&quot;&quot;</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyb</span><span class="w"> </span><span class="kn">import</span> <span class="n">USB_VCP</span><span class="p">,</span><span class="n">UART</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">task_share</span><span class="w"> </span><span class="kn">import</span> <span class="n">Share</span><span class="p">,</span> <span class="n">Queue</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">cotask</span>
@@ -117,30 +115,32 @@
                  <span class="n">leftDataValues</span><span class="p">,</span> <span class="n">leftTimeValues</span><span class="p">,</span> <span class="n">rightDataValues</span><span class="p">,</span> <span class="n">rightTimeValues</span><span class="p">,</span>
                  <span class="n">centroidValues</span><span class="p">,</span> <span class="n">centroidTime</span><span class="p">,</span> <span class="n">estx</span><span class="p">,</span> <span class="n">esty</span><span class="p">,</span>
                  <span class="n">startTime</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">        Initializes the task_user class. Task user is responsible for reading user input over a serial port, parsing the input for single-character commands,</span>
-<span class="sd">        and then manipulating shared variables to communicate with other tasks based on the user commands.</span>
-<span class="sd">        :param: setpoint (The setpoint for the task user)</span>
-<span class="sd">        :param: gainP (The proportional gain for the task user)</span>
-<span class="sd">        :param: gainI (The integral gain for the task user)</span>
-<span class="sd">        :param: speed (The speed for the task user)</span>
-<span class="sd">        :param: line (The line flag for the task user)</span>
-<span class="sd">        :param: leftMotorGo (The left motor go flag for the task user)</span>
-<span class="sd">        :param: rightMotorGo (The right motor go flag for the task user)</span>
-<span class="sd">        :param: leftDataValues (The left data values for the task user)</span>
-<span class="sd">        :param: leftTimeValues (The left time values for the task user)</span>
-<span class="sd">        :param: rightDataValues (The right data values for the task user)</span>
-<span class="sd">        :param: rightTimeValues (The right time values for the task user)</span>
-<span class="sd">        :param: centroidValues (The centroid values for the task user)</span>
-<span class="sd">        :param: centroidTime (The centroid time for the task user)</span>
-<span class="sd">        :param: estx (The estimated x position for the task user)</span>
-<span class="sd">        :param: esty (The estimated y position for the task user)</span>
-<span class="sd">        :param: startTime (The start time for the task user)</span>
-<span class="sd">        &#39;&#39;&#39;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the user-interface task.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            setpoint: Share containing the motor-test target position.</span>
+<span class="sd">            gainP: Share containing the proportional gain.</span>
+<span class="sd">            gainI: Share containing the integral gain.</span>
+<span class="sd">            speed: Share containing the default line-following speed.</span>
+<span class="sd">            line: Share indicating whether line-following mode is active.</span>
+<span class="sd">            leftMotorGo: Share used to start or stop the left motor task.</span>
+<span class="sd">            rightMotorGo: Share used to start or stop the right motor task.</span>
+<span class="sd">            leftDataValues: Queue of logged left-motor position samples.</span>
+<span class="sd">            leftTimeValues: Queue of timestamps for left-motor samples.</span>
+<span class="sd">            rightDataValues: Queue of logged right-motor position samples.</span>
+<span class="sd">            rightTimeValues: Queue of timestamps for right-motor samples.</span>
+<span class="sd">            centroidValues: Queue reserved for line-following telemetry.</span>
+<span class="sd">            centroidTime: Queue reserved for line-following timestamps.</span>
+<span class="sd">            estx: Queue containing estimated x-position samples.</span>
+<span class="sd">            esty: Queue containing estimated y-position samples.</span>
+<span class="sd">            startTime: Optional share storing the common logging start time in</span>
+<span class="sd">                microseconds.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S0_MM</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_leftMotorGo</span> <span class="o">=</span> <span class="n">leftMotorGo</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_rightMotorGo</span> <span class="o">=</span> <span class="n">rightMotorGo</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span> <span class="o">=</span> <span class="n">USB_VCP</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span> <span class="o">=</span> <span class="n">UART</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span><span class="mi">9600</span><span class="p">)</span>
+        <span class="c1">#self._ser = USB_VCP()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_setpoint</span> <span class="o">=</span> <span class="n">setpoint</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_gainP</span> <span class="o">=</span> <span class="n">gainP</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_gainI</span> <span class="o">=</span> <span class="n">gainI</span>
@@ -165,27 +165,21 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_time_format</span><span class="p">:</span> <span class="nb">float</span>  <span class="o">=</span> <span class="mf">0.0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span><span class="p">:</span> <span class="nb">str</span>       <span class="o">=</span> <span class="s2">&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_line_follow_filename</span><span class="p">:</span> <span class="nb">str</span><span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">track_flag</span> <span class="o">=</span> <span class="kc">False</span>
         
 <div class="viewcode-block" id="task_user.run">
 <a class="viewcode-back" href="../api.html#task_user.task_user.run">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">        implements the ui as a finite state machine with states for main menu, input, help menu, gain selection, setpoint selection, start the test, line following menu, task list table, and track the line.</span>
-<span class="sd">        :param: None</span>
-<span class="sd">        :returns: None</span>
-<span class="sd">        :notes: The task_user class is a Finite State Machine with states for main menu, input, help menu, gain selection, setpoint selection, start the test, line following menu, task list table, and track the line.</span>
-<span class="sd">        The task_user class is responsible for reading user input over a serial port, parsing the input for single-character commands,</span>
-<span class="sd">        and then manipulating shared variables to communicate with other tasks based on the user commands.</span>
-<span class="sd">        &#39;&#39;&#39;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Run one iteration of the user-interface state machine.</span>
+
+<span class="sd">        Yields:</span>
+<span class="sd">            int: The current UI state identifier.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         
         <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
 <span class="c1">#==============================================================================            </span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">==</span> <span class="n">S0_MM</span><span class="p">:</span> <span class="c1"># main menu</span>
-<span class="w">                </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">                State 0: Main Menu</span>
-<span class="sd">                The robot is in the main menu, this task just displays the main menu before moving to the input state.</span>
-<span class="sd">                &#39;&#39;&#39;</span>
-                
+            <span class="c1">#vestigular</span>
                 <span class="c1">#self._setpoint.put(2000)</span>
                 
     
@@ -198,25 +192,12 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;| g | start the test</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;| l | line following menu</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;| t | task list table</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;| ft | track the line</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;+---+----------------+</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
 
                 <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">UI_prompt</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S1_INP</span>
 <span class="c1">#==============================================================================                </span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">==</span> <span class="n">S1_INP</span><span class="p">:</span> <span class="c1"># Wait for UI commands</span>
-<span class="w">                </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">                State 1: Input</span>
-<span class="sd">                The robot is in the input state and waiting for user input.</span>
-<span class="sd">                The robot will display the input state and wait for user input.</span>
-<span class="sd">                The robot will then transition to the help menu if the user inputs &#39;h&#39;.</span>
-<span class="sd">                The robot will then transition to the gain selection state if the user inputs &#39;k&#39;.</span>
-<span class="sd">                The robot will then transition to the setpoint selection state if the user inputs &#39;s&#39;.</span>
-<span class="sd">                The robot will then transition to the start the test state if the user inputs &#39;g&#39;.</span>
-<span class="sd">                The robot will then transition to the line following menu state if the user inputs &#39;l&#39;.</span>
-<span class="sd">                The robot will then transition to the task list table state if the user inputs &#39;t&#39;.</span>
-<span class="sd">                The robot will then transition to the track the line state if the user inputs &#39;ft&#39;.</span>
-<span class="sd">                &#39;&#39;&#39;</span>
                 <span class="c1"># Wait for at least one character in serial buffer</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
                     <span class="c1"># Read the character and decode it into a string</span>
@@ -252,27 +233,13 @@
                     <span class="k">elif</span> <span class="n">inChar</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;t&#39;</span><span class="p">,</span><span class="s1">&#39;T&#39;</span><span class="p">}:</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">cotask</span><span class="o">.</span><span class="n">task_list</span><span class="o">.</span><span class="fm">__repr__</span><span class="p">())</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S0_MM</span>
-                    <span class="k">elif</span> <span class="n">inChar</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;ft&#39;</span><span class="p">,</span><span class="s1">&#39;FT&#39;</span><span class="p">}:</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S14_track</span>
 <span class="c1">#============================================================================== </span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">==</span> <span class="n">S2_HLP</span><span class="p">:</span>
-<span class="w">                </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">                State 2: Help Menu</span>
-<span class="sd">                The robot is in the help menu and waiting for user input.</span>
-<span class="sd">                The robot will display the help menu and wait for user input.</span>
-<span class="sd">                The robot will then transition to the main menu if the user inputs a command.</span>
-<span class="sd">                &#39;&#39;&#39;</span>
                 <span class="c1"># waits for user to input a character to exit help menu</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S0_MM</span>
 <span class="c1">#============================================================================== </span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">==</span> <span class="n">S3_KP</span><span class="p">:</span>
-<span class="w">                </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">                State 3: Gain Selection</span>
-<span class="sd">                The robot is in the gain selection state and waiting for user input.</span>
-<span class="sd">                The robot will display the gain selection state and wait for user input.</span>
-<span class="sd">                The robot will then transition to the Ki selection state if the user inputs a number.</span>
-<span class="sd">                &#39;&#39;&#39;</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
                     <span class="c1">#multicharacter input</span>
                     <span class="n">char</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
@@ -305,12 +272,6 @@
                             <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S4_KI</span>
 <span class="c1">#============================================================================== </span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">==</span> <span class="n">S4_KI</span><span class="p">:</span>
-<span class="w">                </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">                State 4: Ki Selection</span>
-<span class="sd">                The robot is in the Ki selection state and waiting for user input.</span>
-<span class="sd">                The robot will display the Ki selection state and wait for user input.</span>
-<span class="sd">                The robot will then transition to the main menu if the user inputs a command.</span>
-<span class="sd">                &#39;&#39;&#39;</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
                     <span class="c1">#multicharacter input</span>
                     <span class="n">char</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
@@ -342,12 +303,6 @@
                             <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S0_MM</span>
 <span class="c1">#============================================================================== </span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">==</span> <span class="n">S8_STP</span><span class="p">:</span>
-<span class="w">                </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">                State 8: Setpoint Selection</span>
-<span class="sd">                The robot is in the setpoint selection state and waiting for user input.</span>
-<span class="sd">                The robot will display the setpoint selection state and wait for user input.</span>
-<span class="sd">                The robot will then transition to the main menu if the user inputs a command.</span>
-<span class="sd">                &#39;&#39;&#39;</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
                     <span class="c1">#multicharacter input</span>
                     <span class="n">char</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
@@ -380,12 +335,6 @@
                             <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S0_MM</span>
 <span class="c1">#==============================================================================</span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">==</span> <span class="n">S5_GO</span><span class="p">:</span>
-<span class="w">                </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">                State 5: Start the Test</span>
-<span class="sd">                The robot is in the start the test statefor set point control and waiting for user input.</span>
-<span class="sd">                The robot will display the start the test state and wait for user input.</span>
-<span class="sd">                The robot will then transition to the wait state until set point control is complete.</span>
-<span class="sd">                &#39;&#39;&#39;</span>
                 <span class="c1"># Wait for at least one character in serial buffer</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
                     <span class="c1"># Read the character and decode it into a string</span>
@@ -398,6 +347,7 @@
                         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_startTime</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                             <span class="bp">self</span><span class="o">.</span><span class="n">_startTime</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">ticks_us</span><span class="p">())</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">_leftMotorGo</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_rightMotorGo</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Starting left motor loop...</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Starting data collection...</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Please wait... </span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -415,10 +365,6 @@
                         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S6_WAIT</span>
 <span class="c1">#============================================================================== </span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">==</span> <span class="n">S6_WAIT</span><span class="p">:</span>
-<span class="w">                </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">                State 6: Wait</span>
-<span class="sd">                The robot is in the wait state and waiting for the set point control to be complete. once complete, the robot will transition to the data collection state.</span>
-<span class="sd">                &#39;&#39;&#39;</span>
                 <span class="c1"># While the data is collecting (in the motor task) block out the</span>
                 <span class="c1"># UI and discard any character entry so that commands don&#39;t</span>
                 <span class="c1"># queue up in the serial buffer</span>
@@ -434,13 +380,6 @@
                     <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S7_DATA</span>
 <span class="c1">#==============================================================================            </span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">==</span> <span class="n">S7_DATA</span><span class="p">:</span>
-<span class="w">                </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">                State 7: Data Collection</span>
-<span class="sd">                The robot is in the data collection state and waiting for the data collection to be complete.</span>
-<span class="sd">                The robot will display the data collection state and wait for the data collection to be complete.</span>
-<span class="sd">                The robot will then print the data to the serial port and the file.</span>
-<span class="sd">                The robot will then transition to the main menu once complete.</span>
-<span class="sd">                &#39;&#39;&#39;</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_collectflag</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_time_format</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{:04d}</span><span class="s2">-</span><span class="si">{:02d}</span><span class="s2">-</span><span class="si">{:02d}</span><span class="s2">_</span><span class="si">{:02d}</span><span class="s2">-</span><span class="si">{:02d}</span><span class="s2">-</span><span class="si">{:02d}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">_time</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_time</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_time</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
@@ -473,31 +412,19 @@
                     <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S0_MM</span>
 <span class="c1">#==============================================================================</span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">==</span> <span class="n">S9_LINE</span><span class="p">:</span>
-<span class="w">                </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">                State 9: Line Following Menu</span>
-<span class="sd">                The robot is in the line following menu and waiting for user input.</span>
-<span class="sd">                The robot will display the line following menu and then transition to the line follow input state.</span>
-<span class="sd">                &#39;&#39;&#39;</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;+--------------------+</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;|Line Following menu</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;+---+----------------+</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;| s | speed selection: current </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_speed</span><span class="si">}</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;| r | return to main menu</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;| g | start the test</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;| t | start the test</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;| g | gametrack</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;+---+----------------+</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
                 
                 <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">UI_prompt</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S10_LIN</span>
 <span class="c1">#==============================================================================</span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">==</span> <span class="n">S10_LIN</span><span class="p">:</span>
-<span class="w">                </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">                State 10: Line Follow Input</span>
-<span class="sd">                The robot is in the line follow input state and waiting for user input.</span>
-<span class="sd">                The robot will display the line follow input state and wait for user input.</span>
-<span class="sd">                The robot will then transition to the speed selection state if the user inputs &#39;s&#39;.</span>
-<span class="sd">                The robot will then transition to the return to main menu state if the user inputs &#39;r&#39;.</span>
-<span class="sd">                The robot will then transition to the start the test state if the user inputs &#39;g&#39;.</span>
-<span class="sd">                &#39;&#39;&#39;</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
                     <span class="n">inChar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
                     
@@ -510,20 +437,18 @@
                         <span class="bp">self</span><span class="o">.</span><span class="n">_line</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S0_MM</span>
                         
-                    <span class="k">elif</span> <span class="n">inChar</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;g&#39;</span><span class="p">,</span><span class="s1">&#39;G&#39;</span><span class="p">}:</span>
+                    <span class="k">elif</span> <span class="n">inChar</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;t&#39;</span><span class="p">,</span><span class="s1">&#39;T&#39;</span><span class="p">}:</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;Press any to stop</span><span class="se">\r\n</span><span class="s1">&#39;</span><span class="p">)</span>
                         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_startTime</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                             <span class="bp">self</span><span class="o">.</span><span class="n">_startTime</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">ticks_us</span><span class="p">())</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">_leftMotorGo</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">_rightMotorGo</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S12_HOLD</span>
+                        
+                    <span class="k">elif</span> <span class="n">inChar</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;g&#39;</span><span class="p">,</span><span class="s1">&#39;G&#39;</span><span class="p">}:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S14_track</span>
 <span class="c1">#==============================================================================</span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">==</span> <span class="n">S11_SETS</span><span class="p">:</span>
-<span class="w">                </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">                State 11: Set Speed</span>
-<span class="sd">                The robot is in the set speed state and waiting for user input.</span>
-<span class="sd">                The robot will display the set speed state and then transition back to the line following menu.</span>
-<span class="sd">                &#39;&#39;&#39;</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
                     <span class="c1">#multicharacter input</span>
                     <span class="n">char</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
@@ -554,30 +479,19 @@
                             <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S9_LINE</span>
 <span class="c1">#==============================================================================</span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">==</span> <span class="n">S12_HOLD</span><span class="p">:</span>
-<span class="w">                </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">                State 12: Hold</span>
-<span class="sd">                The robot is in the hold state and waiting for the user to press any button to stop the line following.</span>
-<span class="sd">                The robot will then transition to the data collection state if the line following is complete and the track flag is false then resturn to the main menu.</span>
-<span class="sd">                &#39;&#39;&#39;</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_rightMotorGo</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_leftMotorGo</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
-                    <span class="k">if</span> <span class="ow">not</span> <span class="n">track_flag</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">track_flag</span><span class="p">:</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">_collectflag</span> <span class="o">=</span> <span class="mi">1</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Starting line follow data collection...</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S13_DATL</span>
                     <span class="k">else</span><span class="p">:</span>
-                        <span class="n">track_flag</span> <span class="o">=</span> <span class="kc">False</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">track_flag</span> <span class="o">=</span> <span class="kc">False</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S0_MM</span>
 <span class="c1">#==============================================================================</span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">==</span> <span class="n">S13_DATL</span><span class="p">:</span>
-<span class="w">                </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">                State 13: Data Collection</span>
-<span class="sd">                The robot is in the data collection state and waiting for the data collection to be complete.</span>
-<span class="sd">                The robot will then print the data to the serial port and the file.</span>
-<span class="sd">                The robot will then transition to the main menu once complete.</span>
-<span class="sd">                &#39;&#39;&#39;</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_collectflag</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_time_format</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{:04d}</span><span class="s2">-</span><span class="si">{:02d}</span><span class="s2">-</span><span class="si">{:02d}</span><span class="s2">_</span><span class="si">{:02d}</span><span class="s2">-</span><span class="si">{:02d}</span><span class="s2">-</span><span class="si">{:02d}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">_time</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_time</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_time</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
@@ -601,17 +515,12 @@
                     <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S9_LINE</span>
 <span class="c1">#==============================================================================</span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">==</span> <span class="n">S14_track</span><span class="p">:</span>
-<span class="w">                </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">                State 14: Track the Line</span>
-<span class="sd">                The robot is in the track the line state and waiting for the user to press any button to start the line following.</span>
-<span class="sd">                The robot will then transition to the hold state if the user presses any button.</span>
-<span class="sd">                &#39;&#39;&#39;</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_ser</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;Press any to stop</span><span class="se">\r\n</span><span class="s1">&#39;</span><span class="p">)</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_startTime</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_startTime</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">ticks_us</span><span class="p">())</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_leftMotorGo</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_rightMotorGo</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
-                <span class="n">track_flag</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">track_flag</span> <span class="o">=</span> <span class="kc">True</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">S12_HOLD</span>
                 
 <span class="c1">#==============================================================================</span>

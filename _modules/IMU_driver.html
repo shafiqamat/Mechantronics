@@ -229,11 +229,10 @@
 <div class="viewcode-block" id="BNO055.cal_status">
 <a class="viewcode-back" href="../api.html#IMU_driver.BNO055.cal_status">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">cal_status</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">        returns a string that classifies the current calibrations status of the </span>
-<span class="sd">        IMU. Call print on this function to print to terminal, or check to see</span>
-<span class="sd">        if status has certian strings inside of it to calibrate without printing</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a human-readable calibration summary string.</span>
 
+<span class="sd">        The returned string reports the calibration state of the overall</span>
+<span class="sd">        system, gyroscope, accelerometer, and magnetometer.</span>
 <span class="sd">        :param: None</span>
 <span class="sd">        :returns: status (The current calibration status of the IMU)</span>
 <span class="sd">        :return type: str</span>
@@ -241,7 +240,7 @@
 <span class="sd">        - SYSTEM CALIBRAITION COMPLETE: All systems are calibrated.</span>
 <span class="sd">        - SYSTEM PARTLY CALIBRATED: Some systems are calibrated.</span>
 <span class="sd">        - SYSTEM NOT CALIBRAITED: No systems are calibrated.</span>
-<span class="sd">        &#39;&#39;&#39;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">status</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
         <span class="n">buff</span> <span class="o">=</span> <span class="nb">bytearray</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">i2c</span><span class="o">.</span><span class="n">mem_read</span><span class="p">(</span><span class="n">buff</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">address</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">REG_CALIB_STAT</span><span class="p">)</span>

@@ -40,7 +40,7 @@ for Kp, 0.05 for Ki and .2 for Kd for the heading state estimation. and Kd = 1, 
    :width: 500px
 
 Final Video
-----------
+-----------
 .. video:: _static/finalvideo.mp4
 
    :width: 500px

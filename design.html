@@ -49,7 +49,7 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Design</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#hardware-design">Hardware Design</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#software-design">Software Design</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#implemenation">Implemenation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#implementation">Implementation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#electronic-implementation">Electronic Implementation</a></li>
 </ul>
 </li>
@@ -101,13 +101,11 @@
 <li><p><a class="reference internal" href="api.html#motor-module"><span class="std std-ref">Motor driver</span></a></p></li>
 <li><p><a class="reference internal" href="api.html#encoder-module"><span class="std std-ref">Encoder driver</span></a></p></li>
 <li><p><a class="reference internal" href="api.html#imu-driver-module"><span class="std std-ref">IMU driver</span></a></p></li>
-</ul>
-<ul class="simple">
-<li><p>IR sensor array is a digital sensor array that is implemented directly in the ‘controller task &lt;task_controller_module&gt;` rather than a driver.</p></li>
+<li><p>The IR sensor array is implemented directly in the <a class="reference internal" href="api.html#task-controller-module"><span class="std std-ref">controller task</span></a> rather than as a standalone driver.</p></li>
 </ul>
 </section>
-<section id="implemenation">
-<h2>Implemenation<a class="headerlink" href="#implemenation" title="Link to this heading"></a></h2>
+<section id="implementation">
+<h2>Implementation<a class="headerlink" href="#implementation" title="Link to this heading"></a></h2>
 <p>The robot integrates these drivers into a Finite State Machine which controls the robot’s behavior. These are
 the different files needed to implement the robot:</p>
 <ul class="simple">

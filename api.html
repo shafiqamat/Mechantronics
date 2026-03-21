@@ -105,7 +105,7 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#task-controller">Task controller</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#module-task_controller">Task controller</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#task_controller.task_controller"><code class="docutils literal notranslate"><span class="pre">task_controller</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#task_controller.task_controller.run"><code class="docutils literal notranslate"><span class="pre">task_controller.run()</span></code></a></li>
 </ul>
@@ -235,8 +235,7 @@ between -100 and 100.</p>
 </section>
 <section id="module-encoder">
 <span id="encoder"></span><span id="encoder-module"></span><h2>encoder<a class="headerlink" href="#module-encoder" title="Link to this heading"></a></h2>
-<p>Created on Thu Jan 29 12:26:59 2026</p>
-<p>&#64;author: maxwe</p>
+<p>Quadrature encoder interface used by the Romi drivetrain.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="encoder.Encoder">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">encoder.</span></span><span class="sig-name descname"><span class="pre">Encoder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chA_pin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chB_pin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chB</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">direction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/encoder.html#Encoder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#encoder.Encoder" title="Link to this definition"></a></dt>
@@ -326,27 +325,16 @@ to measure with respect to the new zero.</p>
 <dd><dl class="py method">
 <dt class="sig sig-object py" id="IMU_driver.BNO055.cal_status">
 <span class="sig-name descname"><span class="pre">cal_status</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/IMU_driver.html#BNO055.cal_status"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#IMU_driver.BNO055.cal_status" title="Link to this definition"></a></dt>
-<dd><p>returns a string that classifies the current calibrations status of the
-IMU. Call print on this function to print to terminal, or check to see
-if status has certian strings inside of it to calibrate without printing</p>
-<dl class="field-list simple">
-<dt class="field-odd">Param<span class="colon">:</span></dt>
-<dd class="field-odd"><p>None</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>status (The current calibration status of the IMU)</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>str</p>
-</dd>
-<dt class="field-even">Notes<span class="colon">:</span></dt>
-<dd class="field-even"><p></p></dd>
-</dl>
-<ul class="simple">
-<li><p>SYSTEM CALIBRAITION COMPLETE: All systems are calibrated.</p></li>
-<li><p>SYSTEM PARTLY CALIBRATED: Some systems are calibrated.</p></li>
-<li><p>SYSTEM NOT CALIBRAITED: No systems are calibrated.</p></li>
-</ul>
+<dd><p>Return a human-readable calibration summary string.</p>
+<p>The returned string reports the calibration state of the overall
+system, gyroscope, accelerometer, and magnetometer.
+:param: None
+:returns: status (The current calibration status of the IMU)
+:return type: str
+:notes:
+- SYSTEM CALIBRAITION COMPLETE: All systems are calibrated.
+- SYSTEM PARTLY CALIBRATED: Some systems are calibrated.
+- SYSTEM NOT CALIBRAITED: No systems are calibrated.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -525,8 +513,7 @@ None</p>
 </section>
 <section id="module-task_motor">
 <span id="task-motor"></span><span id="task-motor-module"></span><h2>Task motor<a class="headerlink" href="#module-task_motor" title="Link to this heading"></a></h2>
-<p>This file demonstrates an example motor task using a custom class with a
-run method implemented as a generator</p>
+<p>Motor-task state machine for encoder sampling and motor actuation.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="task_motor.task_motor">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">task_motor.</span></span><span class="sig-name descname"><span class="pre">task_motor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mot</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#motor.Motor" title="motor.Motor"><span class="pre">Motor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">enc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#encoder.Encoder" title="encoder.Encoder"><span class="pre">Encoder</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">startTimeRef</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">line</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">err</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">go</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataValues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeValues</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/task_motor.html#task_motor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#task_motor.task_motor" title="Link to this definition"></a></dt>
@@ -537,7 +524,12 @@ and encoders.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="task_motor.task_motor.run">
 <span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/task_motor.html#task_motor.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#task_motor.task_motor.run" title="Link to this definition"></a></dt>
-<dd><p>Runs one iteration of the task</p>
+<dd><p>Run one iteration of the motor task state machine.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Yields<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>int</em> – The current motor-task state identifier.</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -545,8 +537,7 @@ and encoders.</p>
 </section>
 <section id="module-task_user">
 <span id="task-user"></span><span id="task-user-module"></span><h2>Task user<a class="headerlink" href="#module-task_user" title="Link to this heading"></a></h2>
-<p>This file demonstrates an example UI task using a custom class with a
-run method implemented as a generator</p>
+<p>Serial user-interface task for tuning, test runs, and data logging.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="task_user.task_user">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">task_user.</span></span><span class="sig-name descname"><span class="pre">task_user</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">setpoint</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gainP</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gainI</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">speed</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">line</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">leftMotorGo</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rightMotorGo</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">leftDataValues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">leftTimeValues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rightDataValues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rightTimeValues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centroidValues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centroidTime</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">esty</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">startTime</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/task_user.html#task_user"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#task_user.task_user" title="Link to this definition"></a></dt>
@@ -557,30 +548,36 @@ on the user commands.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="task_user.task_user.run">
 <span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/task_user.html#task_user.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#task_user.task_user.run" title="Link to this definition"></a></dt>
-<dd><p>implements the ui as a finite state machine with states for main menu, input, help menu, gain selection, setpoint selection, start the test, line following menu, task list table, and track the line.
-:param: None
-:returns: None
-:notes: The task_user class is a Finite State Machine with states for main menu, input, help menu, gain selection, setpoint selection, start the test, line following menu, task list table, and track the line.
-The task_user class is responsible for reading user input over a serial port, parsing the input for single-character commands,
-and then manipulating shared variables to communicate with other tasks based on the user commands.</p>
+<dd><p>Run one iteration of the user-interface state machine.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Yields<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>int</em> – The current UI state identifier.</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
 
 </section>
-<section id="task-controller">
-<span id="task-controller-module"></span><h2>Task controller<a class="headerlink" href="#task-controller" title="Link to this heading"></a></h2>
-<p id="module-task_controller">Created on Thu Feb  5 13:24:14 2026</p>
-<p>&#64;author: maxwe</p>
+<section id="module-task_controller">
+<span id="task-controller"></span><span id="task-controller-module"></span><h2>Task controller<a class="headerlink" href="#module-task_controller" title="Link to this heading"></a></h2>
+<p>Closed-loop controller and game-state logic for the Romi robot.</p>
+<p>This task contains the position controller used for single-motor testing, the
+line-following controller, and the state-estimation/game-track logic used
+during the final autonomous run.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="task_controller.task_controller">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">task_controller.</span></span><span class="sig-name descname"><span class="pre">task_controller</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Kp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ki</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">setpoint</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">speed</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">line</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R_pos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R_err</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">L_pos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">L_err</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centroidValues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centroidTime</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">esty</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">heading</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">IMU</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/task_controller.html#task_controller"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#task_controller.task_controller" title="Link to this definition"></a></dt>
-<dd><dl class="py method">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">task_controller.</span></span><span class="sig-name descname"><span class="pre">task_controller</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Kp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ki</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">setpoint</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">speed</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">line</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R_pos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R_err</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">L_pos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">L_err</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centroidValues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centroidTime</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">heading</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dist</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">accl</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/task_controller.html#task_controller"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#task_controller.task_controller" title="Link to this definition"></a></dt>
+<dd><p>Controller task for setpoint, line-following, and track navigation.</p>
+<dl class="py method">
 <dt class="sig sig-object py" id="task_controller.task_controller.run">
 <span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/task_controller.html#task_controller.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#task_controller.task_controller.run" title="Link to this definition"></a></dt>
-<dd><p>Runs the task_controller class as a Finite State Machine with states for idle, step, line, state estimation, and turn.
-:param: None
-:returns: None</p>
+<dd><p>Run one iteration of the controller state machine.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Yields<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>int</em> – The current controller state identifier.</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -588,18 +585,20 @@ and then manipulating shared variables to communicate with other tasks based on 
 </section>
 <section id="module-task_observer">
 <span id="task-observer"></span><span id="task-observer-module"></span><h2>Task observer<a class="headerlink" href="#module-task_observer" title="Link to this heading"></a></h2>
-<p>Created on Thu Mar  5 15:25:02 2026</p>
-<p>&#64;author: maxwe</p>
+<p>State observer for robot pose estimation using encoders and the IMU.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="task_observer.task_observer">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">task_observer.</span></span><span class="sig-name descname"><span class="pre">task_observer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">IMU</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R_pos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R_err</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">L_pos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">L_err</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">esty</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">heading</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/task_observer.html#task_observer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#task_observer.task_observer" title="Link to this definition"></a></dt>
-<dd><dl class="py method">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">task_observer.</span></span><span class="sig-name descname"><span class="pre">task_observer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">IMU</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R_pos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R_err</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">L_pos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">L_err</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">esty</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">heading</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dist</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">accl</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/task_observer.html#task_observer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#task_observer.task_observer" title="Link to this definition"></a></dt>
+<dd><p>Observer task that estimates robot position and heading.</p>
+<dl class="py method">
 <dt class="sig sig-object py" id="task_observer.task_observer.run">
 <span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/task_observer.html#task_observer.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#task_observer.task_observer.run" title="Link to this definition"></a></dt>
-<dd><p>Runs the task_observer class as a Finite State Machine with states with only two states, wait and run.
-:param: None
-:returns: None
-:notes: calculates the state of the robot based on the motor efforts and the IMU data.</p>
+<dd><p>Run one iteration of the observer state machine.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Yields<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>int</em> – The current observer state identifier.</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -795,7 +794,7 @@ against corruption by interrupts or pre-emptive scheduling.</p>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="task_share.Share.ser_num">
-<span class="sig-name descname"><span class="pre">ser_num</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">16</span></span><a class="headerlink" href="#task_share.Share.ser_num" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">ser_num</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">18</span></span><a class="headerlink" href="#task_share.Share.ser_num" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>

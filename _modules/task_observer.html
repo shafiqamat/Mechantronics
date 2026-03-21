@@ -74,20 +74,13 @@
            <div itemprop="articleBody">
              
   <h1>Source code for task_observer</h1><div class="highlight"><pre>
-<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
-<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">Created on Thu Mar  5 15:25:02 2026</span>
-
-<span class="sd">@author: maxwe</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span></span><span class="sd">&quot;&quot;&quot;State observer for robot pose estimation using encoders and the IMU.&quot;&quot;&quot;</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">task_share</span><span class="w">   </span><span class="kn">import</span> <span class="n">Share</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">micropython</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">IMU_driver</span><span class="w"> </span><span class="kn">import</span> <span class="n">BNO055</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ulab</span><span class="w"> </span><span class="kn">import</span> <span class="n">numpy</span> <span class="k">as</span> <span class="n">np</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">pyb</span><span class="w"> </span><span class="kn">import</span> <span class="n">I2C</span>
-<span class="c1">#from ulab import math as math</span>
-<span class="n">i2c</span> <span class="o">=</span> <span class="n">I2C</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">I2C</span><span class="o">.</span><span class="n">CONTROLLER</span><span class="p">,</span> <span class="n">baudrate</span><span class="o">=</span><span class="mi">100000</span><span class="p">)</span>
-<span class="n">IMU</span> <span class="o">=</span> <span class="n">BNO055</span><span class="p">(</span><span class="n">i2c</span><span class="p">,</span><span class="mh">0x28</span><span class="p">)</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">math</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">math</span>
+
 
 <span class="n">S0_WAIT</span>  <span class="o">=</span> <span class="n">micropython</span><span class="o">.</span><span class="n">const</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># State 0 wait for command</span>
 <span class="n">S1_RUN</span>   <span class="o">=</span> <span class="n">micropython</span><span class="o">.</span><span class="n">const</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># State 1 run observer</span>
@@ -95,26 +88,26 @@
 <div class="viewcode-block" id="task_observer">
 <a class="viewcode-back" href="../api.html#task_observer.task_observer">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">task_observer</span><span class="p">:</span>
-    
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">IMU</span><span class="p">,</span><span class="n">R_pos</span><span class="p">,</span> <span class="n">R_err</span><span class="p">,</span><span class="n">L_pos</span><span class="p">,</span> <span class="n">L_err</span><span class="p">,</span> <span class="n">estx</span><span class="p">,</span> <span class="n">esty</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">current_x</span><span class="p">,</span> <span class="n">current_y</span><span class="p">,</span> <span class="n">heading</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Observer task that estimates robot position and heading.&quot;&quot;&quot;</span>
 
-<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">        Initializes the task_observer class. Task observer is responsible for estimating the state of the robot.</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">IMU</span><span class="p">,</span><span class="n">R_pos</span><span class="p">,</span> <span class="n">R_err</span><span class="p">,</span><span class="n">L_pos</span><span class="p">,</span> <span class="n">L_err</span><span class="p">,</span> <span class="n">estx</span><span class="p">,</span> <span class="n">esty</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">current_x</span><span class="p">,</span> <span class="n">current_y</span><span class="p">,</span><span class="n">heading</span><span class="p">,</span><span class="n">dist</span><span class="p">,</span><span class="n">accl</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the observer task.</span>
 
-<span class="sd">        :param: IMU (The IMU object)</span>
-<span class="sd">        :param: R_pos (The right position for the observer)</span>
-<span class="sd">        :param: R_err (The right error for the observer)</span>
-<span class="sd">        :param: L_pos (The left position for the observer)</span>
-<span class="sd">        :param: L_err (The left error for the observer)</span>
-<span class="sd">        :param: estx (The estimated x position for the observer)</span>
-<span class="sd">        :param: esty (The estimated y position for the observer)</span>
-<span class="sd">        :param: start (The start flag for the observer)</span>
-<span class="sd">        :param: current_x (The current x position for the observer)</span>
-<span class="sd">        :param: current_y (The current y position for the observer)</span>
-<span class="sd">        :param: heading (The heading for the observer)</span>
-
-<span class="sd">        notes: </span>
-<span class="sd">        &#39;&#39;&#39;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            IMU: BNO055 driver instance.</span>
+<span class="sd">            R_pos: Share containing the right encoder position.</span>
+<span class="sd">            R_err: Share containing the right motor effort command.</span>
+<span class="sd">            L_pos: Share containing the left encoder position.</span>
+<span class="sd">            L_err: Share containing the left motor effort command.</span>
+<span class="sd">            estx: Queue reserved for estimated x-history samples.</span>
+<span class="sd">            esty: Queue reserved for estimated y-history samples.</span>
+<span class="sd">            start: Share used to enable or stop the observer.</span>
+<span class="sd">            current_x: Share containing the latest estimated x position.</span>
+<span class="sd">            current_y: Share containing the latest estimated y position.</span>
+<span class="sd">            heading: Share containing the latest estimated heading.</span>
+<span class="sd">            dist: Share containing cumulative estimated travel distance.</span>
+<span class="sd">            accl: Share containing the latest acceleration sample.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="mi">0</span>
         
         <span class="c1">#values for motor input voltages taken from controller</span>
@@ -130,10 +123,12 @@
         
         <span class="bp">self</span><span class="o">.</span><span class="n">IMU</span> <span class="o">=</span> <span class="n">IMU</span>    <span class="c1">#IMU object</span>
         
+        <span class="bp">self</span><span class="o">.</span><span class="n">heading</span> <span class="o">=</span> <span class="n">heading</span>
+        
         <span class="bp">self</span><span class="o">.</span><span class="n">x</span>   <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">])</span> <span class="c1">#temporary</span>
         
         <span class="bp">self</span><span class="o">.</span><span class="n">A_D</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">0.7427</span>	<span class="p">,</span><span class="mf">0.0000</span>	<span class="p">,</span><span class="mf">0.2494</span>	<span class="p">,</span><span class="mf">0.2494</span><span class="p">],</span>
-                        <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="o">-</span><span class="mf">0.0061</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span>
+                        <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mf">0.0061</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span>
                         <span class="p">[</span><span class="o">-</span><span class="mf">0.1212</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mf">0.3192</span><span class="p">,</span><span class="mf">0.3095</span><span class="p">],</span>
                         <span class="p">[</span><span class="o">-</span><span class="mf">0.1212</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mf">0.3095</span><span class="p">,</span><span class="mf">0.3192</span><span class="p">]])</span>
         
@@ -145,36 +140,36 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">C_D</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">1.0</span><span class="p">,</span><span class="o">-</span><span class="mf">70.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">],</span>
                              <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span><span class="mf">70.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">],</span>
                              <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">1.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">],</span>
-                             <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">,</span><span class="o">-</span><span class="mf">0.25</span><span class="p">,</span><span class="mf">.025</span><span class="p">]])</span>
+                             <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">,</span><span class="o">-</span><span class="mf">0.25</span><span class="p">,</span><span class="mf">0.25</span><span class="p">]])</span>
     
         <span class="c1">#self.Y_vector = States #Queue of estimated state vectors</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">estx</span> <span class="o">=</span> <span class="n">estx</span> <span class="c1">#Queue for storing estimaed position</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">esty</span> <span class="o">=</span> <span class="n">esty</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">current_x</span> <span class="o">=</span> <span class="n">current_x</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">current_y</span> <span class="o">=</span> <span class="n">current_y</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">heading</span> <span class="o">=</span> <span class="n">heading</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dist</span> <span class="o">=</span> <span class="n">dist</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">accl</span> <span class="o">=</span> <span class="n">accl</span>
         
         <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="n">start</span> <span class="c1">#Share for starting</span>
     
 <div class="viewcode-block" id="task_observer.run">
 <a class="viewcode-back" href="../api.html#task_observer.task_observer.run">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">        Runs the task_observer class as a Finite State Machine with states with only two states, wait and run.</span>
-<span class="sd">        :param: None</span>
-<span class="sd">        :returns: None</span>
-<span class="sd">        :notes: calculates the state of the robot based on the motor efforts and the IMU data.</span>
-<span class="sd">        &#39;&#39;&#39;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Run one iteration of the observer state machine.</span>
+
+<span class="sd">        Yields:</span>
+<span class="sd">            int: The current observer state identifier.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
 <span class="c1">#==============================================================================</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">S0_WAIT</span><span class="p">:</span>
-<span class="w">                </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">                State 0: Wait</span>
-<span class="sd">                The robot is in wait and waiting for the start flag to be true.</span>
-<span class="sd">                If the start flag is true, the robot will transition to state 1, run.</span>
-<span class="sd">                &#39;&#39;&#39;</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="o">.</span><span class="n">get</span><span class="p">():</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">dist</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">current_x</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">current_y</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">IMU</span><span class="o">.</span><span class="n">set_mode</span><span class="p">(</span><span class="s2">&quot;NDOF&quot;</span><span class="p">)</span>
+                    <span class="c1">#zero heading</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">head_off</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">IMU</span><span class="o">.</span><span class="n">heading</span><span class="p">()</span>
                     <span class="n">init_sr</span> <span class="o">=</span> <span class="p">(</span><span class="mi">149</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">IMU</span><span class="o">.</span><span class="n">heading</span><span class="p">()</span>
                     <span class="n">init_sl</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="mi">149</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">IMU</span><span class="o">.</span><span class="n">heading</span><span class="p">()</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">offset_sr</span> <span class="o">=</span> <span class="n">init_sr</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_pos</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
@@ -182,24 +177,31 @@
                     <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">S1_RUN</span>
 <span class="c1">#==============================================================================        </span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">S1_RUN</span><span class="p">:</span>
-<span class="w">                </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">                State 1: Run</span>
-<span class="sd">                The robot is in run and calculating the state of the robot based on the motor efforts and the IMU data.</span>
-<span class="sd">                The robot will then store the state of the robot in the estimated x and y position queues.</span>
-<span class="sd">                The robot will then store the state of the robot in the current x and y position queues.</span>
-<span class="sd">                The robot will then store the state of the robot in the heading queue.</span>
-<span class="sd">                &#39;&#39;&#39;</span>
                 <span class="c1">#grabs the motor efforts and scales to 4.5V</span>
-                <span class="n">vr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_vol</span><span class="o">.</span><span class="n">get</span><span class="p">()</span> <span class="o">*</span> <span class="mf">4.5</span>
-                <span class="n">vl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">L_vol</span><span class="o">.</span><span class="n">get</span><span class="p">()</span> <span class="o">*</span> <span class="mf">4.5</span>
-                <span class="c1">#grabs encoder position and scales it to mm</span>
+                <span class="n">vr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_vol</span><span class="o">.</span><span class="n">get</span><span class="p">()</span> <span class="o">*</span> <span class="mf">4.5</span><span class="o">/</span><span class="mi">100</span>
+                <span class="n">vl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">L_vol</span><span class="o">.</span><span class="n">get</span><span class="p">()</span> <span class="o">*</span> <span class="mf">4.5</span><span class="o">/</span><span class="mi">100</span>
+                <span class="c1">#saturation</span>
+                <span class="k">if</span> <span class="n">vr</span> <span class="o">&gt;</span> <span class="mf">4.5</span><span class="p">:</span>
+                    <span class="n">vr</span> <span class="o">=</span> <span class="mf">4.5</span>
+                <span class="k">elif</span> <span class="n">vr</span> <span class="o">&lt;</span> <span class="o">-</span><span class="mf">4.5</span><span class="p">:</span>
+                    <span class="n">vr</span> <span class="o">=</span> <span class="o">-</span><span class="mf">4.5</span>
+                <span class="k">if</span> <span class="n">vl</span> <span class="o">&gt;</span> <span class="mf">4.5</span><span class="p">:</span>
+                    <span class="n">vl</span> <span class="o">=</span> <span class="mf">4.5</span>
+                <span class="k">elif</span> <span class="n">vl</span> <span class="o">&lt;</span> <span class="o">-</span><span class="mf">4.5</span><span class="p">:</span>
+                    <span class="n">vl</span> <span class="o">=</span> <span class="o">-</span><span class="mf">4.5</span>
+                <span class="c1"># #grabs encoder position and scales it to mm</span>
                 <span class="n">sr</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">R_pos</span><span class="o">.</span><span class="n">get</span><span class="p">()</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">offset_sr</span><span class="p">)</span> <span class="o">/</span> <span class="mi">633345</span>
                 <span class="n">sl</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L_pos</span><span class="o">.</span><span class="n">get</span><span class="p">()</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">offset_sl</span><span class="p">)</span> <span class="o">/</span> <span class="mi">633345</span>
-                <span class="n">heading</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">IMU</span><span class="o">.</span><span class="n">heading</span><span class="p">()</span>
+                <span class="c1"># heading = self.IMU.heading()</span>
                 <span class="n">yaw</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">IMU</span><span class="o">.</span><span class="n">yaw_rate</span><span class="p">()</span>
                 
                 <span class="c1"># y = np.array([sl,sr,heading,yaw])</span>
                 <span class="c1"># u = np.array([vl,vr])</span>
+                <span class="n">heading</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">IMU</span><span class="o">.</span><span class="n">heading</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">head_off</span>
+                <span class="k">if</span> <span class="n">heading</span> <span class="o">&gt;</span> <span class="mi">360</span><span class="p">:</span>
+                    <span class="n">heading</span> <span class="o">-=</span> <span class="mi">360</span>
+                <span class="k">elif</span> <span class="n">heading</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">heading</span> <span class="o">+=</span> <span class="mi">360</span>
                 
                 <span class="n">u_star</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">vl</span><span class="p">,</span><span class="n">vr</span><span class="p">,</span><span class="n">sl</span><span class="p">,</span><span class="n">sr</span><span class="p">,</span><span class="n">heading</span><span class="p">,</span><span class="n">yaw</span><span class="p">])</span>
                 
@@ -209,18 +211,21 @@
                 
                 <span class="c1">#store these values now somewhere</span>
                 <span class="c1">#finally</span>
+                
+                
+                <span class="c1"># self.estx.put(self.x[0])</span>
+                <span class="c1"># self.esty.put(self.x[1])</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="mf">.87</span>
+                
+                <span class="bp">self</span><span class="o">.</span><span class="n">current_x</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_x</span><span class="o">.</span><span class="n">get</span><span class="p">()</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">heading</span><span class="p">)))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">current_y</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_y</span><span class="o">.</span><span class="n">get</span><span class="p">()</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">math</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">heading</span><span class="p">)))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">dist</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dist</span><span class="o">.</span><span class="n">get</span><span class="p">()</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">heading</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">heading</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">accl</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">IMU</span><span class="o">.</span><span class="n">get_accel</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span>
+
+                
                 <span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">x_next</span>
-                
-                <span class="bp">self</span><span class="o">.</span><span class="n">estx</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">esty</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-                
-                <span class="bp">self</span><span class="o">.</span><span class="n">current_x</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">current_y</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-                
-                <span class="bp">self</span><span class="o">.</span><span class="n">heading</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">IMU</span><span class="o">.</span><span class="n">heading</span><span class="p">())</span>
-                
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">estx</span><span class="o">.</span><span class="n">full</span><span class="p">():</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="o">.</span><span class="n">get</span><span class="p">():</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">S0_WAIT</span>
 <span class="c1">#==============================================================================</span>
             <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span></div>
