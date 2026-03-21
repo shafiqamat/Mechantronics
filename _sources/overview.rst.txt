@@ -4,7 +4,7 @@ Project Overview
 This project implements a line-following robot using a MicroPython-based 
 control system on an STM32 microcontroller.
 
-github repository: 'Here <https://github.com/shafiqamat/Mechantronics.git>'
+github repository: `Here <https://github.com/shafiqamat/Mechantronics.git>`
 
 Authors
 -------
@@ -15,7 +15,7 @@ Project Date
 ------------
 January - March 2026
 
-.. image:: _static/romi.jpg
+.. image:: _static/Romi.jpg
    :alt: Robot Photo
    :width: 500px
 
